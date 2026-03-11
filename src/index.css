@@ -1,0 +1,399 @@
+@import "tailwindcss";
+@import "./ai_response_formatting.css";
+
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --color-primary: #3164F0;
+  --color-primary-hover: #2555d9;
+  --color-primary-muted: #eef2ff;
+}
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #0f172a;
+  background-color: #f0f2f5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-size: 15px;
+}
+
+/* Sidebar dark theme scrollbar */
+.app-sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+.app-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+.app-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Firefox Fix for Excalidraw Icons */
+.excalidraw svg {
+  max-width: none !important;
+}
+
+.editor-content,
+.crapeditor-b2b-content {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Slate Placeholder Centering Fix */
+/* Per-Cell Placeholder Styles */
+[data-placeholder]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: #94a3b8;
+  opacity: 0.7;
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+[data-placeholder]:focus-within::before {
+  opacity: 0.4;
+}
+
+/* MathQuill overrides */
+.mq-editable-field {
+  width: 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px !important;
+}
+
+.mq-focused {
+  box-shadow: none !important;
+}
+
+/* Print preview: page margin presets (A4) - screen only */
+.print-preview-margin-10x10 {
+  padding: 10mm;
+}
+.print-preview-margin-8x6 {
+  padding: 8mm 6mm;
+}
+
+/* Print: page margins and show only document content with proper flow */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  @page narrow {
+    size: A4;
+    margin: 8mm 6mm;
+  }
+  body {
+    page: normal;
+  }
+  body[data-print-margin="8x6"] {
+    page: narrow;
+  }
+
+  /* Hide app chrome so only document content remains and flows */
+  .app-layout aside,
+  .document-chrome,
+  .document-no-print {
+    display: none !important;
+  }
+
+  /* Unconstrain layout so print area can flow to multiple pages */
+  .app-layout,
+  .app-layout main,
+  .document-page,
+  .document-page-inner,
+  .document-page-inner > div:first-child {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .document-print-area {
+    display: block !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  .document-print-area .mt-10 {
+    margin-top: 0 !important;
+  }
+  .document-print-area .mb-20 {
+    margin-bottom: 0 !important;
+  }
+
+  .document-print-area .crapeditor-b2b-content,
+  .document-print-area [class*="max-w-4xl"] {
+    max-width: none !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    page-break-inside: auto;
+  }
+  .document-print-area .crapeditor-b2b-editable {
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Allow breaking inside block cells by default; avoid only when "Preserve complete content" is on */
+  .document-print-area .editor-block-cell {
+    page-break-inside: auto;
+  }
+  body[data-print-keep-blocks-together="true"] .document-print-area .editor-block-cell {
+    page-break-inside: avoid;
+  }
+}
+
+/* Ask AI panel: auto-grow input with smooth height transition */
+.ask-ai-input-textarea {
+  min-height: 44px;
+  line-height: 1.4;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ask AI panel: typing indicator - animated bot + 3 dots */
+.ask-ai-typing-bot {
+  animation: ask-ai-bot-pulse 1.2s ease-in-out infinite;
+}
+@keyframes ask-ai-bot-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+}
+.ask-ai-typing-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: ask-ai-dots-bounce 0.6s ease-in-out infinite both;
+}
+.ask-ai-typing-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+.ask-ai-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ask-ai-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes ask-ai-dots-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Ask AI panel: border shine + halo glow animation when panel is activated */
+.ask-ai-input-wrapper {
+  position: relative;
+}
+.ask-ai-input-wrapper.ask-ai-input-border-shine::before,
+.ask-ai-input-wrapper.ask-ai-input-border-shine::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ask-ai-input-wrapper.ask-ai-input-border-shine::before {
+  animation: ask-ai-border-shine 2.2s ease-out forwards;
+  inset: -1px;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.5) 0%,
+    rgba(139, 92, 246, 0.5) 35%,
+    rgba(99, 102, 241, 1) 50%,
+    rgba(6, 182, 212, 1) 65%,
+    rgba(139, 92, 246, 0.5) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+.ask-ai-input-wrapper.ask-ai-input-border-shine::after {
+  inset: -8px;
+  z-index: -1;
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.05) 0%,
+    rgba(139, 92, 246, 0.4) 35%,
+    rgba(99, 102, 241, 0.7) 50%,
+    rgba(6, 182, 212, 0.7) 65%,
+    rgba(139, 92, 246, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  filter: blur(12px);
+  animation: ask-ai-halo-shine 6s ease-out forwards;
+}
+@keyframes ask-ai-border-shine {
+  0% {
+    background-position: 200% 0;
+    opacity: 1;
+  }
+  40% {
+    background-position: -200% 0;
+    opacity: 1;
+  }
+  100% {
+    background-position: -200% 0;
+    opacity: 0;
+  }
+}
+/* Ask AI input: border-only animation when AI is loading (no halo) */
+.ask-ai-input-wrapper.ask-ai-input-loading::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.55) 0%,
+    rgba(139, 92, 246, 0.55) 35%,
+    rgba(99, 102, 241, 1) 50%,
+    rgba(6, 182, 212, 1) 65%,
+    rgba(139, 92, 246, 0.55) 100%
+  );
+  background-size: 200% 100%;
+  animation: ask-ai-border-loading 1.8s ease-in-out infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+.ask-ai-input-wrapper.ask-ai-input-loading::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.05) 0%,
+    rgba(139, 92, 246, 0.4) 35%,
+    rgba(99, 102, 241, 0.7) 50%,
+    rgba(6, 182, 212, 0.7) 65%,
+    rgba(139, 92, 246, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  filter: blur(12px);
+  animation: ask-ai-halo-loading 2s ease-out 1 forwards;
+}
+.ask-ai-input-wrapper.ask-ai-input-loading {
+  pointer-events: none;
+}
+.ask-ai-input-wrapper.ask-ai-input-loading .pointer-events-auto {
+  pointer-events: auto;
+}
+@keyframes ask-ai-border-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+/* Shadow: 1 wave only, runs once when send clicked */
+@keyframes ask-ai-halo-loading {
+  0% {
+    background-position: 200% 0;
+    opacity: 1;
+  }
+  70% {
+    background-position: -200% 0;
+    opacity: 1;
+  }
+  100% {
+    background-position: -200% 0;
+    opacity: 0;
+  }
+}
+
+@keyframes ask-ai-halo-shine {
+  0% {
+    background-position: 200% 0;
+    opacity: 1;
+  }
+  35% {
+    background-position: -200% 0;
+    opacity: 1;
+  }
+  100% {
+    background-position: -200% 0;
+    opacity: 0;
+  }
+}
+
+/* Table borders and layout for print and print preview */
+@media print {
+  .editor-table-block table {
+    table-layout: fixed !important;
+  }
+  .editor-table-block table,
+  .editor-table-block th,
+  .editor-table-block td {
+    border: 1px solid #000 !important;
+  }
+  .editor-table-block th,
+  .editor-table-block td {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .editor-table-block thead th {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

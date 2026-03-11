@@ -1,0 +1,6 @@
+export { InfoPanel } from './InfoPanel'
+export { ExportPanel } from './ExportPanel'
+export { ContributorsPanel } from './ContributorsPanel'
+export { AskAIPanel } from './AskAIPanel'
+export { PrintPanel } from './PrintPanel'
+export { DocumentStructurePanel } from './DocumentStructurePanel'

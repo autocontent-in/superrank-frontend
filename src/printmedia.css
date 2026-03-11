@@ -1,0 +1,205 @@
+/* Print: hide placeholder text */
+@media print {
+  [data-placeholder]::before {
+    content: none !important;
+  }
+}
+
+/* Print & print preview: no cell backgrounds, no column borders, keep horizontal lines */
+.print-preview .editor-block-cell {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.print-preview .editor-block-actions,
+.print-preview .editor-image-block-actions,
+.print-preview .editor-image-toolbar {
+  display: none !important;
+}
+
+.print-preview .editor-column,
+.print-preview .editor-columns-container {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.print-preview .editor-column > div {
+  padding: 0 !important;
+}
+
+/* Hide toolbar, top buttons, column toolbar in print preview */
+.print-preview .editor-toolbar,
+.print-preview .editor-top-buttons,
+.print-preview .editor-column-toolbar,
+.print-preview .editor-divider-toolbar,
+.print-preview .editor-table-toolbar {
+  display: none !important;
+}
+
+/* Print preview: no border on page container, hide title and gray background */
+.print-preview .app-title,
+.print-preview .app-root {
+  background: white !important;
+}
+.print-preview .app-title {
+  display: none !important;
+}
+.print-preview .editor-page-container {
+  border: none !important;
+  box-shadow: none !important;
+}
+.print-preview .editor-block-empty {
+  display: none !important;
+}
+
+/* Sketch block: ensure preview SVG is visible in print preview and when printing */
+.print-preview .editor-sketch-block,
+.print-preview .editor-sketch-preview {
+  overflow: visible !important;
+}
+.print-preview .editor-sketch-block .editor-sketch-preview svg,
+.print-preview .editor-sketch-block .editor-sketch-preview svg * {
+  max-width: none !important;
+  visibility: visible !important;
+}
+.print-preview .editor-sketch-block .editor-sketch-preview {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+/* Hide Edit Sketchbook button in print preview and print */
+.print-preview .editor-sketch-block .absolute.bottom-4.right-4 {
+  display: none !important;
+}
+
+@media print {
+  .editor-sketch-block {
+    overflow: visible !important;
+    page-break-inside: avoid;
+  }
+  .editor-sketch-preview {
+    overflow: visible !important;
+    min-height: 280px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .editor-sketch-preview svg {
+    max-width: none !important;
+    width: 100% !important;
+    min-height: 200px !important;
+    visibility: visible !important;
+  }
+  .editor-sketch-preview svg * {
+    visibility: visible !important;
+  }
+  .editor-sketch-block .absolute.bottom-4.right-4 {
+    display: none !important;
+  }
+}
+
+/* Hide text highlight in print preview and when printing, unless "Show highlights" is on */
+.print-preview:not(.print-preview-show-highlights) .editor-text-highlight {
+  background-color: transparent !important;
+}
+
+/* Code block: show full code without scrollbars in print preview (screen) */
+.print-preview .editor-code-block,
+.print-preview .editor-code-block > div {
+  overflow: visible !important;
+}
+.print-preview .editor-code-block-preview,
+.print-preview .editor-code-block .codemirror-wrapper {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+.print-preview .editor-code-block .cm-editor,
+.print-preview .editor-code-block .cm-scroller,
+.print-preview .editor-code-block .cm-content {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+@media print {
+  @page {
+    margin: 10mm;
+  }
+  @page margin-8x6 {
+    margin: 8mm 6mm;
+  }
+  body[data-print-margin="8x6"] {
+    page: margin-8x6;
+  }
+  /* Hide highlights when printing unless user turned "Show highlights" on (body attribute set from Editor) */
+  body:not([data-print-highlights="true"]) .editor-text-highlight {
+    background-color: transparent !important;
+  }
+  /* Preserve background color when "Show highlights" is on (browsers often strip it otherwise) */
+  body[data-print-highlights="true"] .editor-text-highlight {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .app-root {
+    background: white !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .app-title {
+    display: none !important;
+  }
+  .editor-page-container {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .editor-block-empty {
+    display: none !important;
+  }
+  .editor-block-cell {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .editor-block-actions,
+  .editor-image-block-actions {
+    display: none !important;
+  }
+  .editor-column,
+  .editor-columns-container {
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .editor-column > div {
+    padding: 0 !important;
+  }
+  .editor-toolbar,
+  .editor-top-buttons,
+  .editor-column-toolbar,
+  .editor-divider-toolbar,
+  .editor-table-toolbar,
+  .print-preview-header {
+    display: none !important;
+  }
+
+  /* Code block: allow flow and page breaks in print; override inline height */
+  .editor-code-block {
+    page-break-inside: auto;
+  }
+  .editor-code-block-preview,
+  .editor-code-block .codemirror-wrapper {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .editor-code-block .cm-editor,
+  .editor-code-block .cm-scroller,
+  .editor-code-block .cm-content {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
