@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Globe, Search, Plus, Loader2, Check, LogOut, ChevronDown, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { Building2, Globe, Search, Plus, Loader2, Check, LogOut, ChevronDown, ChevronLeft, ChevronRight, Trash2, Building } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import Api from '../api/api'
 import AiApi from '../api/AiApi'
 import { UserAvatar } from '../components/UserAvatar'
 import { SmartModal } from '../components/ui/SmartModal'
 
-const BRAND_NAME = 'AutoContent'
-const inputBase =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 placeholder-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+const BRAND_NAME = import.meta.env.VITE_APP_NAME ?? 'AutoContent'
 
 function getLogoUrl(name) {
   const token = import.meta.env.VITE_LOGO_DEV_PUBLIC_KEY
@@ -21,24 +19,23 @@ function CompetitorCard({ competitor, isYourCompany, onRemove }) {
   return (
     <div
       className={`relative flex flex-col items-center gap-2 rounded-xl border p-3 transition-colors group ${isYourCompany
-          ? 'border-blue-300 bg-blue-50/50'
-          : 'border-slate-200 bg-white hover:border-slate-300'
+        ? 'border-blue-300 bg-blue-50/50'
+        : 'border-slate-200 bg-white hover:border-slate-300'
         }`}
     >
       <img
         src={competitor.logo}
         alt={`${competitor.name} logo`}
-        className="h-10 w-10 rounded-lg object-cover bg-slate-100"
+        className="h-16 w-16 rounded-lg object-cover bg-slate-100"
       />
-      <div className="mt-2 min-w-0 w-full text-center">
-        <p className="font-medium text-slate-900 text-xs" title={competitor.name}>{competitor.name}</p>
-        {/* <p className="text-xs text-slate-500 truncate" title={competitor.website}>{competitor.website}</p> */}
+      <div className="mt-2 w-full text-center">
+        <a href={competitor.website} className="font-medium text-gray-600 text-xs block underline-offset-4 decoration-gray-500 group-hover:underline group-hover:text-gray-900 group-hover:decoration-dashed" target="_blank" rel="noopener noreferrer" title={competitor.name}>{competitor.name}</a>
       </div>
       {onRemove && (
         <button
           type="button"
           onClick={() => onRemove(competitor)}
-          className="absolute top-1 right-1 rounded-lg bg-white border border-slate-200 p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 opacity-0 transition-opacity"
+          className="absolute top-1 right-1 rounded-md bg-white border border-slate-200 p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 opacity-0 transition-opacity"
           aria-label={`Remove ${competitor.name}`}
         >
           <Trash2 className="h-4 w-4" />
@@ -76,22 +73,19 @@ function OnboardingNavbar() {
     navigate('/login', { replace: true })
   }
 
-  const displayName = user?.full_name || (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}`.trim() : user?.email || 'User')
-
   return (
-    <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-20">
+    <header className="sticky top-0 z-20">
       <div className="w-full max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         <span className="font-semibold text-slate-900 text-lg">{BRAND_NAME}</span>
         <div className="relative" ref={triggerRef}>
           <button
             type="button"
             onClick={() => setDropdownOpen((o) => !o)}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white/80 backdrop-blur-sm px-2 py-1.5 hover:bg-slate-50 transition-colors"
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
           >
             <UserAvatar user={user} className="w-8 h-8" />
-            <span className="text-sm font-medium text-slate-700 max-w-[120px] truncate">{displayName}</span>
             <ChevronDown className={`w-4 h-4 text-slate-500 shrink-0 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
           {dropdownOpen && (
@@ -121,7 +115,9 @@ export function Onboarding() {
   const [step, setStep] = useState(1)
   const [companyName, setCompanyName] = useState('')
   const [companyWebsite, setCompanyWebsite] = useState('')
+  const [user_website_metadata, setUserWebsiteMetadata] = useState(null)
   const [competitors, setCompetitors] = useState([])
+  const [analyzing, setAnalyzing] = useState(false)
   const [searchingCompetitors, setSearchingCompetitors] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [error, setError] = useState(null)
@@ -129,46 +125,45 @@ export function Onboarding() {
   const [addCompanyName, setAddCompanyName] = useState('')
   const [addCompanyWebsite, setAddCompanyWebsite] = useState('')
   const [competitorToRemove, setCompetitorToRemove] = useState(null)
-  const [lastFetchedWebsite, setLastFetchedWebsite] = useState(null)
-
-  // Step 2: fetch competitors from API (only when we don't already have results for this website)
-  useEffect(() => {
-    if (step !== 2) return
+  const handleStep1Next = () => {
     const website = companyWebsite.trim() || ''
-    // Skip fetch if we already have results for this website (e.g. user went back to step 1 then Next again)
-    if (lastFetchedWebsite === website) {
-      return
-    }
+    setAnalyzing(true)
+    setError(null)
+    AiApi.post('/api/v1/analyze-website', { data: { website } })
+      .then((res) => {
+        setUserWebsiteMetadata(res.data)
+        setStep(2)
+        searchCompetitors()
+      })
+      .catch((err) => {
+        setError(err.response?.data?.detail?.message || 'Failed to fetch your website')
+      })
+      .finally(() => setAnalyzing(false))
+  }
+
+  const searchCompetitors = () => {
+    const website = companyWebsite.trim() || ''
     setSearchingCompetitors(true)
     setError(null)
     AiApi.post('/api/v1/find-competitors', { data: { website } })
       .then((res) => {
-        // Backend returns { data: { website, industry, competitors } }; axios puts body in res.data
-        const payload = res.data?.data ?? res.data
-        let list = payload?.competitors
-        if (typeof list === 'string') {
-          try {
-            list = JSON.parse(list)
-          } catch {
-            list = []
+        const competitors = (res.data ?? []).map((c, index) => {
+          const name = c.name?.trim() || 'Unknown'
+          return {
+            id: c.id ?? `company-${name}-${index}`,
+            name: name.trim(),
+            website: c.website?.trim() || '-',
+            logo: getLogoUrl(name),
           }
-        }
-        if (!Array.isArray(list)) list = []
-        const normalized = list.map((c, i) => ({
-          id: c.id ?? `comp-${i}`,
-          name: c.name ?? 'Unknown',
-          website: c.domain ?? c.website ?? '-',
-          logo: c.logo ?? getLogoUrl(c.name),
-        }))
-        setCompetitors(normalized)
-        setLastFetchedWebsite(website)
+        })
+        setCompetitors(competitors)
       })
       .catch((err) => {
         setError(err.response?.data?.message ?? err.message ?? 'Failed to find competitors')
         setCompetitors([])
       })
       .finally(() => setSearchingCompetitors(false))
-  }, [step, companyWebsite, lastFetchedWebsite])
+  }
 
   const removeCompetitor = (id) => {
     setCompetitors((prev) => prev.filter((c) => c.id !== id))
@@ -219,13 +214,35 @@ export function Onboarding() {
     setError(null)
     setCompleting(true)
     try {
-      await Api.post('/onboarding', {
+      const onboardingRes = await Api.post('/onboarding', {
         data: {
           name: companyName.trim(),
           website: companyWebsite.trim() || null,
-          competitors: competitors.map((c) => ({ name: c.name, website: c.website })),
+          metadata: user_website_metadata,
         },
       })
+      const user_company_id = onboardingRes.data?.user_company_id
+
+      for (const competitor of competitors) {
+        let metadata = null
+        try {
+          const analyzeRes = await AiApi.post('/api/v1/analyze-website', {
+            data: { website: competitor.website },
+          })
+          metadata = analyzeRes.data
+        } catch {
+          metadata = null
+        }
+        await Api.post('/competitor-website', {
+          data: {
+            user_company_id,
+            name: competitor.name,
+            website: competitor.website,
+            metadata,
+          },
+        })
+      }
+
       await refreshUser()
       navigate('/home', { replace: true })
     } catch (err) {
@@ -256,102 +273,129 @@ export function Onboarding() {
       <main className="flex-1 flex flex-col justify-center relative z-10 py-12">
         <div className="w-full max-w-7xl mx-auto px-4">
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 pt-6 pb-8 px-8">
-              {step === 1 && (
-                <div className="space-y-5">
-                  <div>
-                    <label htmlFor="companyName" className="block text-sm font-medium text-slate-600 mb-1.5">
-                      Company name
-                    </label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        id="companyName"
-                        type="text"
-                        placeholder="e.g. Acme Inc"
-                        className={`${inputBase} pl-9`}
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="companyWebsite" className="block text-sm font-medium text-slate-600 mb-1.5">
-                      Company website
-                    </label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        id="companyWebsite"
-                        type="url"
-                        placeholder="https://yourcompany.com"
-                        className={`${inputBase} pl-9`}
-                        value={companyWebsite}
-                        onChange={(e) => setCompanyWebsite(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-400 cursor-not-allowed"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Previous
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      disabled={!canGoNextStep1}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+            {step === 1 && (
+              <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 pt-6 pb-8 px-6 max-w-md mx-auto space-y-5">
+                <div>
+                  <p className="text-sm text-slate-600 mb-10">Before we jump in, let's find out who else is in this business. Enter your company name and website below to get started.</p>
+                  <label htmlFor="companyName" className="block text-sm font-medium text-slate-600 mb-1.5">
+                    Company name
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="companyName"
+                      type="text"
+                      placeholder="Microsoft"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 placeholder-slate-400 transition-colors hover:border-slate-400 focus:outline-none focus:border-blue-500 pl-9"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                    />
                   </div>
                 </div>
-              )}
+                <div>
+                  <label htmlFor="companyWebsite" className="block text-sm font-medium text-slate-600 mb-1.5">
+                    Company website
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      id="companyWebsite"
+                      type="url"
+                      placeholder="https://yourcompany.com"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 placeholder-slate-400 transition-colors hover:border-slate-400 focus:outline-none focus:border-blue-500 pl-9"
+                      value={companyWebsite}
+                      onChange={(e) => setCompanyWebsite(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {error && step === 1 && (
+                  <div
+                    role="alert"
+                    className="rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm px-3 py-2 text-center"
+                  >
+                    {error}
+                  </div>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-400 cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStep1Next}
+                    disabled={!canGoNextStep1 || analyzing}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {analyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Analyzing....
+                      </>
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
-              {step === 2 && (
-                <div className="space-y-5">
-                  {companyName.trim() && (
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start space-x-4 min-w-0">
-                        <img
-                          src={getLogoUrl(companyName.trim())}
-                          alt={`${companyName.trim()} logo`}
-                          className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-900">{companyName.trim()}</p>
-                          <p className="text-sm text-slate-500">{companyWebsite.trim() || '—'}</p>
+            {step === 2 && (
+              <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 pt-6 pb-8 px-6 max-w-4xl mx-auto space-y-5">
+                {companyName.trim() && (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={getLogoUrl(companyName.trim())}
+                        alt={`${companyName.trim()} logo`}
+                        className="h-12 w-12 shrink-0 rounded-lg object-cover bg-slate-100"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="text-xl font-semibold text-slate-700">{companyName.trim()}</h3>
+                        <p className="text-sm text-slate-500">{companyWebsite.trim() || '—'}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openAddCompanyModal}
+                      disabled={searchingCompetitors}
+                      className="shrink-0 flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-slate-300"
+                      aria-label="Add company"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add company
+                    </button>
+                  </div>
+                )}
+
+                <hr className="border-slate-200" />
+
+                {searchingCompetitors ? (
+                  <div className="flex flex-col items-center justify-center pt-16 pb-18 text-slate-500">
+                    <Search className="w-10 h-10 text-gray-600 mb-3 animate-pulse" />
+                    <p className="text-sm font-medium">Please wait... while we analyze your market</p>
+                  </div>
+                ) : (
+                  <>
+                    {competitors.length === 0 ? (
+                      <div className="text-gray-500 py-16 px-10">
+                        <p className="font-normal text-base text-center">
+                          Unable to fetch competitors.
+                        </p>
+                        <div className="flex justify-center mt-4">
+                          <button type="button" onClick={openAddCompanyModal} className="flex items-center space-x-2  justify-center rounded-lg border border-slate-300 px-4 py-2 text-base font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-slate-300"><Plus className="w-4 h-4" /> <span>click to add competitors manually</span></button>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={openAddCompanyModal}
-                        disabled={searchingCompetitors}
-                        className="shrink-0 flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-slate-300"
-                        aria-label="Add company"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Add company
-                      </button>
-                    </div>
-                  )}
-
-                  <hr className="border-slate-200" />
-
-                  {searchingCompetitors ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                      <Search className="w-10 h-10 text-blue-500 mb-3 animate-pulse" />
-                      <p className="mt-4 text-sm font-medium">Searching for competitors…</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-5 gap-3">
+                    ) : (
+                      <div className="grid grid-cols-4 gap-3">
                         {competitors.map((c) => (
                           <CompetitorCard
                             key={c.id}
@@ -361,47 +405,47 @@ export function Onboarding() {
                           />
                         ))}
                       </div>
-                      {error && (
-                        <div
-                          role="alert"
-                          className="rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm px-3 py-2 text-center"
-                        >
-                          {error}
-                        </div>
-                      )}
-                      <div className="flex gap-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setStep(1)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                          Previous
-                        </button>
-                        <button
-                          type="button"
-                          onClick={completeOnboarding}
-                          disabled={completing}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          {completing ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Completing…
-                            </>
-                          ) : (
-                            <>
-                              <Check className="w-4 h-4" />
-                              Finish
-                            </>
-                          )}
-                        </button>
+                    )}
+                    {error && (
+                      <div
+                        role="alert"
+                        className="rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm px-3 py-2 text-center"
+                      >
+                        {error}
                       </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={completeOnboarding}
+                        disabled={completing}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        {completing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Completing…
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Finish
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -439,7 +483,7 @@ export function Onboarding() {
             </button>
           </div>
         </div>
-        </SmartModal>
+      </SmartModal>
 
       <SmartModal
         open={addCompanyModalOpen}
