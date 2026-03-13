@@ -213,43 +213,58 @@ export function Onboarding() {
   const completeOnboarding = async () => {
     setError(null)
     setCompleting(true)
-    try {
-      const onboardingRes = await Api.post('/onboarding', {
-        data: {
-          name: companyName.trim(),
-          website: companyWebsite.trim() || null,
-          metadata: user_website_metadata,
-        },
-      })
-      const user_company_id = onboardingRes.data?.user_company_id
+
+    const companyPayload = {
+      data: {
+        name: companyName.trim(),
+        website: companyWebsite.trim() || null,
+        metadata: user_website_metadata,
+      }
+    };
+
+    let userCompanyId = null;
+
+    await Api.post('/companies', companyPayload).then((response) => {
+      const createCompanyResponse = response.data.data;
+
+      userCompanyId = createCompanyResponse.id;
 
       for (const competitor of competitors) {
-        let metadata = null
-        try {
-          const analyzeRes = await AiApi.post('/api/v1/analyze-website', {
-            data: { website: competitor.website },
-          })
-          metadata = analyzeRes.data
-        } catch {
-          metadata = null
-        }
-        await Api.post('/competitor-website', {
+        const competitorPayload = {
           data: {
-            user_company_id,
+            user_company_id: userCompanyId,
             name: competitor.name,
             website: competitor.website,
-            metadata,
-          },
+            metadata: competitor.metadata,
+          }
+        }
+
+        Api.post('/competitor-companies', competitorPayload).then((response) => {
+          const createCompetitorResponse = response.data.data;
+        }).catch((err) => {
+          setError(err.response?.data?.message || err.message || 'Failed to create competitor')
         })
       }
-
-      await refreshUser()
-      navigate('/home', { replace: true })
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to complete onboarding')
-    } finally {
       setCompleting(false)
-    }
+    }).catch((err) => {
+      setError(err.response?.data?.message || err.message || 'Failed to complete onboarding')
+      setCompleting(false)
+    });
+
+    const onboardingPayload = {
+      data: {
+        is_onboarding_complete: true,
+        user_company_id: userCompanyId,
+      }
+    };
+
+    Api.patch('/onboarding', onboardingPayload).then(async () => {
+      await refreshUser();
+      navigate('/home', { replace: true });
+    }).catch((err) => {
+      setError(err.response?.data?.message || err.message || 'Failed to update onboarding')
+      setCompleting(false)
+    })
   }
 
   const canGoNextStep1 = step === 1 && companyName.trim().length > 0
@@ -395,7 +410,7 @@ export function Onboarding() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-4 gap-3">
+                      <div className="grid grid-cols-5 gap-2">
                         {competitors.map((c) => (
                           <CompetitorCard
                             key={c.id}
