@@ -29,6 +29,7 @@ import {
   Search,
   CornerDownLeft,
   LayoutList,
+  Check,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api'
@@ -567,12 +568,20 @@ function CompanyDropdownMenuContent({
               onClick={() => onSelectCompany(company.id)}
               className={`flex w-full items-center space-x-2 px-3 py-2 text-xs text-left transition-colors rounded-md ${selectedCompanyId === company.id ? 'bg-gray-100 text-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
             >
-              <img
-                src={company.logo}
-                alt={`${company.name} logo`}
-                className="h-5 w-5 rounded-md object-cover bg-slate-100 shrink-0"
-              />
-              <span className="flex-1 truncate">{company.name}</span>
+              <div className="w-full flex items-center justify-between">
+                <div className="w-full flex items-center space-x-2">
+                  <img
+                    src={company.logo}
+                    alt={`${company.name} logo`}
+                    className="h-5 w-5 rounded-md object-cover bg-slate-100 shrink-0"
+                  />
+                  <span className="flex-1 truncate">{company.name}</span>
+                </div>
+                {selectedCompanyId === company.id && (
+                  <Check className="w-4 h-4 text-gray-700" />
+                )}
+              </div>
+
             </button>
           ))
         )}
