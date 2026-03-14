@@ -5,6 +5,7 @@ import { DefaultLayoutWithSidebar } from './pages/user/DefaultLayoutWithSidebar'
 import { Onboarding } from './pages/Onboarding'
 import { AddNewCompany } from './pages/user/AddNewCompany'
 import { Home } from './pages/user/Home'
+import { SeoAnalysis } from './pages/user/SeoAnalysis'
 import { Document } from './pages/user/Document'
 import { Documents } from './pages/user/Documents'
 import { Groups } from './pages/user/Groups'
@@ -34,6 +35,7 @@ const allRoutes = [
         children: [
           { index: true, element: <Home /> },
           { path: 'home', element: <Home /> },
+          { path: 'seo-analysis', element: <SeoAnalysis /> },
           { path: 'all-files', element: <AllFiles /> },
           { path: 'documents', element: <Documents /> },
           { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Ai /> : <Navigate to="/" replace /> },

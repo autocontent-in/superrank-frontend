@@ -30,6 +30,7 @@ import {
   CornerDownLeft,
   LayoutList,
   Check,
+  BarChart2,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api'
@@ -50,6 +51,7 @@ const sidebarNav = [
     label: '',
     items: [
       { to: '/', label: 'Home', icon: House, end: true },
+      { to: '/seo-analysis', label: 'SEO Analysis', icon: BarChart2 },
       { to: '/all-files', label: 'All Files', icon: LayoutList },
       { to: '/groups', label: 'Groups', icon: FolderOpen },
       { to: '/documents', label: 'Documents', icon: FileText },
@@ -605,6 +607,7 @@ function CompanyDropdownMenuContent({
 
 function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
   const navigate = useNavigate()
+  const { user, refreshUser } = useAuth()
   const { showSnackbar, updateSnackbar, closeSnackbar } = useSnackbar()
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createModalStep, setCreateModalStep] = useState('choices')
@@ -692,7 +695,27 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
 
   const width = isSidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_COLLAPSED_WIDTH
 
+  // Sync selected company from user.default_company (from /me) when user or companies change
+  useEffect(() => {
+    if (!companies.length) return
+    const defaultId = user?.default_company?.id ?? user?.default_company?.uuid
+    const match = defaultId != null ? companies.find((c) => c.id == defaultId) : null
+    if (match) setSelectedCompanyId(match.id)
+  }, [user, companies])
+
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId) || null
+
+  const handleSelectCompany = useCallback(async (id) => {
+    setSelectedCompanyId(id)
+    setIsCompanyDropdownOpen(false)
+    try {
+      await Api.post('/switch-company', { data: { company_id: id } })
+      await refreshUser()
+    } catch (err) {
+      const message = err.response?.data?.message ?? 'Failed to switch company.'
+      showSnackbar({ message, variant: 'error', duration: 4000 })
+    }
+  }, [showSnackbar, refreshUser])
 
   const handleCreateBlankPage = useCallback(async () => {
     if (isCreating) return
@@ -860,10 +883,7 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
                   companies={companies}
                   companiesLoading={companiesLoading}
                   selectedCompanyId={selectedCompanyId}
-                  onSelectCompany={(id) => {
-                    setSelectedCompanyId(id)
-                    setIsCompanyDropdownOpen(false)
-                  }}
+                  onSelectCompany={handleSelectCompany}
                   onClose={() => setIsCompanyDropdownOpen(false)}
                   onAddCompany={() => {
                     setIsCompanyDropdownOpen(false)
@@ -885,10 +905,7 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
                   companies={companies}
                   companiesLoading={companiesLoading}
                   selectedCompanyId={selectedCompanyId}
-                  onSelectCompany={(id) => {
-                    setSelectedCompanyId(id)
-                    setIsCompanyDropdownOpen(false)
-                  }}
+                  onSelectCompany={handleSelectCompany}
                   onClose={() => setIsCompanyDropdownOpen(false)}
                   onAddCompany={() => {
                     setIsCompanyDropdownOpen(false)
