@@ -38,6 +38,12 @@ import { useSnackbar, SnackbarMainContentContainer } from '../../components/ui/S
 
 const isDev = import.meta.env.VITE_APP_ENV === 'dev'
 
+function getLogoUrl(name) {
+  const token = import.meta.env.VITE_LOGO_DEV_PUBLIC_KEY
+  if (token && name) return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${token}`
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name ?? '')}&background=6366f1&color=fff&size=80`
+}
+
 const sidebarNav = [
   {
     label: '',
@@ -534,17 +540,140 @@ function UpgradeProCard({ collapsed }) {
   )
 }
 
+function CompanyDropdownMenuContent({
+  companies,
+  companiesLoading,
+  selectedCompanyId,
+  onSelectCompany,
+  onClose,
+  onAddCompany,
+}) {
+  return (
+    <>
+      <div className="max-h-48 overflow-y-auto pt-1 px-1">
+        {companiesLoading ? (
+          <div className="px-3 py-4 text-center text-xs text-slate-500">
+            Loading companies…
+          </div>
+        ) : companies.length === 0 ? (
+          <div className="px-3 py-3 text-sm text-slate-500">
+            No companies yet
+          </div>
+        ) : (
+          companies.map((company) => (
+            <button
+              key={company.id}
+              type="button"
+              onClick={() => onSelectCompany(company.id)}
+              className={`flex w-full items-center space-x-2 px-3 py-2 text-xs text-left transition-colors rounded-md ${selectedCompanyId === company.id ? 'bg-gray-100 text-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
+            >
+              <img
+                src={company.logo}
+                alt={`${company.name} logo`}
+                className="h-5 w-5 rounded-md object-cover bg-slate-100 shrink-0"
+              />
+              <span className="flex-1 truncate">{company.name}</span>
+            </button>
+          ))
+        )}
+      </div>
+      <div className="py-1 px-1">
+        <button
+          type="button"
+          onClick={() => {
+            onClose()
+            onAddCompany?.()
+          }}
+          className="flex w-full items-center space-x-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 text-left rounded-md"
+        >
+          <Plus className="w-4 h-4 text-slate-500 shrink-0" />
+          <span>Add company</span>
+        </button>
+      </div>
+    </>
+  )
+}
+
 function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
   const navigate = useNavigate()
   const { showSnackbar, updateSnackbar, closeSnackbar } = useSnackbar()
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createModalStep, setCreateModalStep] = useState('choices')
   const [isCreating, setIsCreating] = useState(false)
+  const [companies, setCompanies] = useState([])
+  const [companiesLoading, setCompaniesLoading] = useState(false)
+  const [companiesError, setCompaniesError] = useState(null)
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null)
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
+  const [companyDropdownFlyoutPosition, setCompanyDropdownFlyoutPosition] = useState(null)
+  const companyDropdownRef = useRef(null)
+  const companyTriggerRef = useRef(null)
+  const companyDropdownMenuRef = useRef(null)
   const collapsed = !isSidebarExpanded
+
+  useLayoutEffect(() => {
+    if (isCompanyDropdownOpen && collapsed && companyTriggerRef.current) {
+      const rect = companyTriggerRef.current.getBoundingClientRect()
+      setCompanyDropdownFlyoutPosition({ left: rect.right + 6, top: rect.top })
+    } else if (!isCompanyDropdownOpen) {
+      setCompanyDropdownFlyoutPosition(null)
+    }
+  }, [isCompanyDropdownOpen, collapsed])
 
   useEffect(() => {
     if (createModalOpen) setCreateModalStep('choices')
   }, [createModalOpen])
+
+  useEffect(() => {
+    let isMounted = true
+    setCompaniesLoading(true)
+    setCompaniesError(null)
+    Api.get('/companies')
+      .then((response) => {
+        if (!isMounted) return
+        const rawCompanies = response?.data?.data ?? []
+        const mappedCompanies = rawCompanies.map((company, index) => {
+          const id = company.id ?? company.uuid ?? `company-${index}`
+          const name = (company.company_name || '').trim() || 'Untitled company'
+          const logo = getLogoUrl(name)
+          return {
+            id,
+            name,
+            logo,
+          }
+        })
+        setCompanies(mappedCompanies)
+        if (mappedCompanies.length > 0) {
+          setSelectedCompanyId(mappedCompanies[0].id)
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setCompanies([])
+        setCompaniesError('Unable to load companies')
+      })
+      .finally(() => {
+        if (!isMounted) return
+        setCompaniesLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isCompanyDropdownOpen) return
+    const handleClickOutside = (e) => {
+      if (
+        companyDropdownRef.current?.contains(e.target) ||
+        companyDropdownMenuRef.current?.contains(e.target)
+      ) return
+      setIsCompanyDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isCompanyDropdownOpen])
 
   useEffect(() => {
     const handler = () => setCreateModalOpen(true)
@@ -553,6 +682,8 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
   }, [])
 
   const width = isSidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_COLLAPSED_WIDTH
+
+  const selectedCompany = companies.find((company) => company.id === selectedCompanyId) || null
 
   const handleCreateBlankPage = useCallback(async () => {
     if (isCreating) return
@@ -666,7 +797,105 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
         </div>
 
         {/* Nav sections — scrollable middle between top bar and user profile */}
-        <nav className="app-sidebar-nav flex-1 min-h-0 overflow-y-auto py-4 px-3 flex flex-col">
+        <nav className="app-sidebar-nav flex-1 min-h-0 overflow-y-auto py-2 px-2.5 flex flex-col">
+          <div className="mb-3 relative" ref={companyDropdownRef}>
+            <button
+              ref={companyTriggerRef}
+              type="button"
+              disabled={companiesLoading}
+              onClick={() => setIsCompanyDropdownOpen((open) => !open)}
+              className={`relative flex w-full items-center gap-2 rounded-md border border-blue-200 bg-linear-to-t from-blue-100 to-blue-50 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${collapsed ? 'justify-center px-0 py-2' : 'p-2'
+                }`}
+            >
+              {selectedCompany ? (
+                <>
+                  <img
+                    src={selectedCompany.logo}
+                    alt={`${selectedCompany.name} logo`}
+                    className="h-6 w-6 rounded-md object-cover shrink-0"
+                  />
+                  {!collapsed && (
+                    <span className="flex-1 truncate">
+                      {selectedCompany.name}
+                    </span>
+                  )}
+                </>
+              ) : (
+                !companiesLoading && (
+                  !collapsed && (
+                    <span className="flex-1 truncate text-slate-400">
+                      Select company
+                    </span>
+                  )
+                )
+              )}
+              {companiesLoading && (
+                !collapsed && (
+                  <span className="flex-1 truncate text-slate-400">
+                    Loading…
+                  </span>
+                )
+              )}
+              {!collapsed && (
+                <ChevronDown className={`w-4 h-4 shrink-0 text-slate-500 transition-transform ${isCompanyDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              )}
+            </button>
+            {isCompanyDropdownOpen && !collapsed && (
+              <div
+                ref={companyDropdownMenuRef}
+                className="mt-1 w-full min-w-[200px] rounded-md border border-slate-200 bg-white shadow-lg absolute z-20 overflow-hidden"
+              >
+                <CompanyDropdownMenuContent
+                  companies={companies}
+                  companiesLoading={companiesLoading}
+                  selectedCompanyId={selectedCompanyId}
+                  onSelectCompany={(id) => {
+                    setSelectedCompanyId(id)
+                    setIsCompanyDropdownOpen(false)
+                  }}
+                  onClose={() => setIsCompanyDropdownOpen(false)}
+                  onAddCompany={() => {
+                    setIsCompanyDropdownOpen(false)
+                    navigate('/companies/new')
+                  }}
+                />
+              </div>
+            )}
+            {isCompanyDropdownOpen && collapsed && companyDropdownFlyoutPosition && createPortal(
+              <div
+                ref={companyDropdownMenuRef}
+                className="fixed z-50 min-w-[200px] w-56 rounded-lg border border-slate-200 bg-white shadow-lg overflow-hidden"
+                style={{
+                  top: companyDropdownFlyoutPosition.top,
+                  left: companyDropdownFlyoutPosition.left,
+                }}
+              >
+                <CompanyDropdownMenuContent
+                  companies={companies}
+                  companiesLoading={companiesLoading}
+                  selectedCompanyId={selectedCompanyId}
+                  onSelectCompany={(id) => {
+                    setSelectedCompanyId(id)
+                    setIsCompanyDropdownOpen(false)
+                  }}
+                  onClose={() => setIsCompanyDropdownOpen(false)}
+                  onAddCompany={() => {
+                    setIsCompanyDropdownOpen(false)
+                    navigate('/companies/new')
+                  }}
+                />
+              </div>,
+              document.body
+            )}
+            {companiesError && !collapsed && !isCompanyDropdownOpen && (
+              <p className="mt-1 text-xs text-red-500">
+                {companiesError}
+              </p>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => setCreateModalOpen(true)}

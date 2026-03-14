@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedCustomerRoute } from './routes/ProtectedCustomerRoute'
 import { DefaultLayoutWithSidebar } from './pages/user/DefaultLayoutWithSidebar'
 import { Onboarding } from './pages/Onboarding'
+import { AddNewCompany } from './pages/user/AddNewCompany'
 import { Home } from './pages/user/Home'
 import { Document } from './pages/user/Document'
 import { Documents } from './pages/user/Documents'
@@ -27,6 +28,7 @@ const allRoutes = [
     element: <ProtectedCustomerRoute />,
     children: [
       { path: 'onboarding', element: <Onboarding /> },
+      { path: 'companies/new', element: <AddNewCompany /> },
       {
         element: <DefaultLayoutWithSidebar />,
         children: [

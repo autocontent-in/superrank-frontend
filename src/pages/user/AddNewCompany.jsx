@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, Fragment } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, Globe, Search, Plus, Loader2, Check, LogOut, ChevronDown, ChevronLeft, ChevronRight, Trash2, Building } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
-import Api from '../api/api'
-import AiApi from '../api/AiApi'
-import { UserAvatar } from '../components/UserAvatar'
-import { SmartModal } from '../components/ui/SmartModal'
+import { useAuth } from '../../contexts/AuthContext'
+import Api from '../../api/api'
+import AiApi from '../../api/AiApi'
+import { UserAvatar } from '../../components/UserAvatar'
+import { SmartModal } from '../../components/ui/SmartModal'
 
 const BRAND_NAME = import.meta.env.VITE_APP_NAME ?? 'AutoContent'
 
@@ -50,7 +50,7 @@ function CompetitorCard({ competitor, isYourCompany, onRemove }) {
   )
 }
 
-function OnboardingNavbar() {
+function AddCompanyNavbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -109,7 +109,7 @@ function OnboardingNavbar() {
   )
 }
 
-export function Onboarding() {
+export function AddNewCompany() {
   const navigate = useNavigate()
   const { refreshUser } = useAuth()
   const [step, setStep] = useState(1)
@@ -210,7 +210,7 @@ export function Onboarding() {
     closeAddCompanyModal()
   }
 
-  const completeOnboarding = async () => {
+  const completeAddCompany = async () => {
     setError(null)
     setCompleting(true)
 
@@ -220,14 +220,14 @@ export function Onboarding() {
         website: companyWebsite.trim() || null,
         metadata: user_website_metadata,
       }
-    };
+    }
 
-    let userCompanyId = null;
+    let userCompanyId = null
 
-    await Api.post('/companies', companyPayload).then((response) => {
-      const createCompanyResponse = response.data.data;
-
-      userCompanyId = createCompanyResponse.id;
+    try {
+      const response = await Api.post('/companies', companyPayload)
+      const createCompanyResponse = response.data.data
+      userCompanyId = createCompanyResponse.id
 
       for (const competitor of competitors) {
         const competitorPayload = {
@@ -238,33 +238,22 @@ export function Onboarding() {
             metadata: competitor.metadata,
           }
         }
-
-        Api.post('/competitors', competitorPayload).then((response) => {
-          const createCompetitorResponse = response.data.data;
-        }).catch((err) => {
+        try {
+          await Api.post('/competitors', competitorPayload)
+        } catch (err) {
           setError(err.response?.data?.message || err.message || 'Failed to create competitor')
-        })
+          setCompleting(false)
+          return
+        }
       }
-      setCompleting(false)
-    }).catch((err) => {
-      setError(err.response?.data?.message || err.message || 'Failed to complete onboarding')
-      setCompleting(false)
-    });
 
-    const onboardingPayload = {
-      data: {
-        is_onboarding_complete: true,
-        user_company_id: userCompanyId,
-      }
-    };
-
-    Api.patch('/onboarding', onboardingPayload).then(async () => {
-      await refreshUser();
-      navigate('/home', { replace: true });
-    }).catch((err) => {
-      setError(err.response?.data?.message || err.message || 'Failed to update onboarding')
+      await refreshUser()
+      navigate('/home', { replace: true })
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to add company')
+    } finally {
       setCompleting(false)
-    })
+    }
   }
 
   const canGoNextStep1 = step === 1 && companyName.trim().length > 0
@@ -283,7 +272,7 @@ export function Onboarding() {
         />
       </div>
 
-      <OnboardingNavbar />
+      <AddCompanyNavbar />
 
       <main className="flex-1 flex flex-col justify-center relative z-10 py-12">
         <div className="w-full max-w-7xl mx-auto px-4">
@@ -291,7 +280,7 @@ export function Onboarding() {
             {step === 1 && (
               <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 pt-6 pb-8 px-6 max-w-md mx-auto space-y-5">
                 <div>
-                  <p className="text-sm text-slate-600 mb-10">Before we jump in, let's find out who else is in this business. Enter your company name and website below to get started.</p>
+                  <p className="text-sm text-slate-600 mb-10">Enter your company name and website below to find your competitors.</p>
                   <label htmlFor="companyName" className="block text-sm font-medium text-slate-600 mb-1.5">
                     Company name
                   </label>
@@ -396,7 +385,7 @@ export function Onboarding() {
                 {searchingCompetitors ? (
                   <div className="flex flex-col items-center justify-center pt-16 pb-18 text-slate-500">
                     <Search className="w-10 h-10 text-gray-600 mb-3 animate-pulse" />
-                    <p className="text-sm font-medium">Please wait... while we analyze your market</p>
+                    <p className="text-sm text-slate-400 font-normal">Please wait... while we analyze your market</p>
                   </div>
                 ) : (
                   <>
@@ -440,7 +429,7 @@ export function Onboarding() {
                       </button>
                       <button
                         type="button"
-                        onClick={completeOnboarding}
+                        onClick={completeAddCompany}
                         disabled={completing}
                         className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       >
