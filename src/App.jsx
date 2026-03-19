@@ -12,6 +12,8 @@ import { Groups } from './pages/user/Groups'
 import { Group } from './pages/user/Group'
 import { AllFiles } from './pages/user/AllFiles'
 import { Ai } from './pages/user/Ai'
+import TinyFishAnalyze from './pages/user/TinyFishAnalyze'
+import { BusinessProfile } from './pages/user/BusinessProfile'
 import {
   Account,
   AccountProfilePage,
@@ -38,6 +40,8 @@ const allRoutes = [
           { path: 'seo-analysis', element: <SeoAnalysis /> },
           { path: 'all-files', element: <AllFiles /> },
           { path: 'documents', element: <Documents /> },
+          { path: 'tinyfish-test', element: <TinyFishAnalyze /> },
+          { path: 'business-profile', element: <BusinessProfile /> },
           { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Ai /> : <Navigate to="/" replace /> },
           { path: 'groups', element: <Groups /> },
           { path: 'groups/:id', element: <Group /> },

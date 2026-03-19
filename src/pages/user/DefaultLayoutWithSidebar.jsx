@@ -31,6 +31,7 @@ import {
   LayoutList,
   Check,
   BarChart2,
+  Fish,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api'
@@ -55,6 +56,8 @@ const sidebarNav = [
       { to: '/all-files', label: 'All Files', icon: LayoutList },
       { to: '/groups', label: 'Groups', icon: FolderOpen },
       { to: '/documents', label: 'Documents', icon: FileText },
+      { to: '/tinyfish-test', label: 'TinyFish Test', icon: Fish },
+      { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
       ...(isDev ? [{ to: '/ai', label: 'AI', icon: Sparkles }] : []),
     ],
   },
