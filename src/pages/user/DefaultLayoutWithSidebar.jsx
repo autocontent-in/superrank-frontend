@@ -58,6 +58,7 @@ const sidebarNav = [
       { to: '/documents', label: 'Documents', icon: FileText },
       { to: '/tinyfish-test', label: 'TinyFish Test', icon: Fish },
       { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
+      { to: '/multi-agent-test', label: 'multi agent test', icon: Sparkles },
       ...(isDev ? [{ to: '/ai', label: 'AI', icon: Sparkles }] : []),
     ],
   },
