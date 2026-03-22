@@ -681,7 +681,7 @@ export function BusinessProfile() {
         onClose={() => setModalStep(null)}
         animation="top"
         title={modalStep?.title ?? 'Output'}
-        size="lg"
+        size="md"
         contentClassName="p-4"
         showFooter={false}
       >
