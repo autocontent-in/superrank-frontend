@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Check, Play } from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Globe } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSnackbar } from '../../components/ui/SnackbarProvider'
 import { SmartModal } from '../../components/ui/SmartModal'
@@ -10,6 +10,180 @@ const WORKFLOW_VIZ_INITIAL = {
   input: null,
   agents: [],
   orchestratorStream: null,
+}
+
+/** Inner payload mirrors TinyFishAnalyze stream events (STARTED, STREAMING_URL, PROGRESS, COMPLETE). */
+const BROWSER_PREVIEW_INITIAL = {
+  phase: 'idle',
+  streamingUrl: '',
+  statusText: '',
+}
+
+function applyBrowserEventData(prev, evt) {
+  if (!evt || typeof evt !== 'object') return prev
+  const type = evt.type
+  if (!type) return prev
+
+  if (type === 'STARTED') {
+    return {
+      phase: 'starting',
+      streamingUrl: '',
+      statusText: 'Starting…',
+    }
+  }
+  if (type === 'STREAMING_URL') {
+    const url = evt.streaming_url || evt.url || ''
+    return {
+      ...prev,
+      streamingUrl: url,
+      phase: 'ready',
+      statusText: url ? 'Stream URL received — waiting for progress…' : 'Waiting for stream URL…',
+    }
+  }
+  if (type === 'PROGRESS') {
+    const purpose = evt.purpose || ''
+    return {
+      ...prev,
+      phase: 'progress',
+      statusText: purpose || 'In progress…',
+    }
+  }
+  if (type === 'COMPLETE') {
+    return {
+      ...prev,
+      phase: 'complete',
+      statusText: 'Complete',
+    }
+  }
+  return prev
+}
+
+function findRunningAgentRunId(agents) {
+  if (!Array.isArray(agents)) return null
+  const running = agents.filter((a) => a.status === 'running')
+  if (running.length === 0) return null
+  return running[running.length - 1].agent_run_id
+}
+
+/** Parsed from browser event_data when COMPLETE + COMPLETED + blogs discovery result (no raw JSON UI). */
+function blogsSummaryFromBrowserComplete(inner) {
+  if (!inner || inner.type !== 'COMPLETE' || inner.status !== 'COMPLETED') return null
+  const r = inner.result
+  if (!r || typeof r !== 'object') return null
+  const hasFlag =
+    Object.prototype.hasOwnProperty.call(r, 'blogs_page_found') ||
+    Object.prototype.hasOwnProperty.call(r, 'blog_page_found')
+  if (!hasFlag) return null
+
+  const rawFound = r.blogs_page_found ?? r.blog_page_found
+  const blogs_page_found = rawFound === true || rawFound === 'true'
+  const blogs_page_url = String(r.blogs_page_url ?? r.blog_page_url ?? '').trim()
+  const blogs = Array.isArray(r.blogs) ? r.blogs : []
+
+  return { blogs_page_found, blogs_page_url, blogs }
+}
+
+function formatBlogDate(iso) {
+  if (iso == null || iso === '') return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
+function AgentBrowserBlogsSummary({ summary }) {
+  if (!summary || typeof summary !== 'object') return null
+
+  if (!summary.blogs_page_found) {
+    return (
+      <div className="mt-2 ml-6 max-w-xl rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700">
+        The company doesn't have any blogs page
+      </div>
+    )
+  }
+
+  const blogs = summary.blogs || []
+  const url = summary.blogs_page_url || ''
+
+  return (
+    <div className="mt-2 ml-6 max-w-xl rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 space-y-3">
+      <div>
+        <span className="text-slate-600">Blog page: </span>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+          >
+            {url}
+          </a>
+        ) : (
+          <span className="text-slate-500">—</span>
+        )}
+      </div>
+
+      {blogs.length === 0 ? (
+        <p className="text-xs text-slate-500">No blog posts listed.</p>
+      ) : (
+        <ul className="space-y-3 list-none m-0 p-0">
+          {blogs.map((b, i) => {
+            const title = b?.title != null ? String(b.title) : '—'
+            const link = b?.link != null ? String(b.link).trim() : ''
+            const when = formatBlogDate(b?.datetime ?? b?.date)
+            return (
+              <li key={`${link || title}-${i}`} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                <div className="font-medium text-slate-900 text-sm leading-snug">{title}</div>
+                <div className="mt-1 text-xs">
+                  {link ? (
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline break-all"
+                    >
+                      {link}
+                    </a>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[11px] text-slate-500">{when}</div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/** Attach live browser stream to the target agent; clears on inner COMPLETE so agent output can show. */
+function applyBrowserStreamToWorkflow(prev, parsed) {
+  if (!parsed || parsed.type !== 'browser' || parsed.event !== 'browser_event' || parsed.event_data == null) {
+    return prev
+  }
+  const inner = parsed.event_data
+  const agentRunId = parsed.agent_run_id ?? parsed.agent_runId ?? findRunningAgentRunId(prev.agents)
+  if (!agentRunId) return prev
+
+  const agents = prev.agents.map((a) => {
+    if (a.agent_run_id !== agentRunId) return a
+    if (inner?.type === 'STARTED') {
+      return { ...a, browserSession: null, browserBlogsSummary: null }
+    }
+    if (inner?.type === 'COMPLETE') {
+      const blogsSummary = blogsSummaryFromBrowserComplete(inner)
+      return {
+        ...a,
+        browserSession: null,
+        browserBlogsSummary: blogsSummary ?? null,
+      }
+    }
+    const base = a.browserSession ?? BROWSER_PREVIEW_INITIAL
+    const next = applyBrowserEventData(base, inner)
+    return { ...a, browserSession: next }
+  })
+
+  return { ...prev, agents }
 }
 
 function stepTitleFromEvent(evt) {
@@ -39,6 +213,14 @@ function formatOutputOrResultField(label, value) {
   }
 }
 
+function isBlogsDiscoveryPayload(obj) {
+  if (!obj || typeof obj !== 'object') return false
+  return (
+    Object.prototype.hasOwnProperty.call(obj, 'blogs_page_found') ||
+    Object.prototype.hasOwnProperty.call(obj, 'blog_page_found')
+  )
+}
+
 function streamPayloadFromOutputOrResult(evt) {
   if (!evt || typeof evt !== 'object') return null
   const hasOut = Object.prototype.hasOwnProperty.call(evt, 'output')
@@ -46,8 +228,12 @@ function streamPayloadFromOutputOrResult(evt) {
   if (!hasOut && !hasRes) return null
 
   const parts = []
-  if (hasOut) parts.push(formatOutputOrResultField('Output', evt.output))
-  if (hasRes) parts.push(formatOutputOrResultField('Result', evt.result))
+  if (hasOut && !isBlogsDiscoveryPayload(evt.output)) {
+    parts.push(formatOutputOrResultField('Output', evt.output))
+  }
+  if (hasRes && !isBlogsDiscoveryPayload(evt.result)) {
+    parts.push(formatOutputOrResultField('Result', evt.result))
+  }
   const body = parts.join('\n\n').trim()
   if (!body) return null
 
@@ -253,7 +439,7 @@ function StreamingTailLoader({ active }) {
     }
     setBarCount(4)
     const id = window.setInterval(() => {
-      setBarCount((n) => (n >= 22 ? 22 : n + 1))
+      setBarCount((n) => (n >= 200 ? 200 : n + 1))
     }, 400)
     return () => window.clearInterval(id)
   }, [active])
@@ -358,7 +544,72 @@ function StepOutputPeek({ stream, onOpen, embedded = false }) {
   )
 }
 
-function WorkflowAgentPipeline({ phase, runId, input, agents, orchestratorStream, onOpenStream }) {
+function browserPreviewShowFrame(phase, streamingUrl) {
+  return (phase === 'progress' || phase === 'complete') && Boolean(streamingUrl)
+}
+
+function BrowserExpandModalBody({ session }) {
+  const { phase, streamingUrl, statusText } = session || {}
+  const showFrame = browserPreviewShowFrame(phase, streamingUrl)
+
+  return (
+    <div className="flex flex-col min-h-0 w-full">
+      <div className="w-full h-100 shrink-0 bg-slate-900">
+        {showFrame ? (
+          <iframe
+            title="browser-stream-expanded (read-only)"
+            src={streamingUrl}
+            className="w-full h-full border-0 block pointer-events-none select-none"
+            allow="autoplay"
+            tabIndex={-1}
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center px-4 text-center text-sm font-medium text-slate-200">
+            Getting my browser...
+          </div>
+        )}
+      </div>
+      {statusText != null && String(statusText).trim() !== '' ? (
+        <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5">
+          <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-wrap wrap-break-word">
+            {statusText}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function BrowserStreamMiniPreview({ phase, streamingUrl, statusText }) {
+  const showFrame = browserPreviewShowFrame(phase, streamingUrl)
+
+  return (
+    <div className="max-w-md space-y-2">
+      <div className="rounded-lg border border-slate-200 bg-slate-900 overflow-hidden shadow-sm h-44 sm:h-52 min-h-44">
+        {showFrame ? (
+          <iframe
+            title="browser-stream (read-only)"
+            src={streamingUrl}
+            className="w-full h-full border-0 block pointer-events-none select-none"
+            allow="autoplay"
+            tabIndex={-1}
+          />
+        ) : (
+          <div className="h-full flex items-center justify-center px-4 text-center text-sm font-medium text-slate-200">
+            Getting my browser...
+          </div>
+        )}
+      </div>
+      {statusText != null && String(statusText).trim() !== '' ? (
+        <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-wrap wrap-break-word">
+          {statusText}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function WorkflowAgentPipeline({ phase, runId, input, agents, orchestratorStream, onOpenStream, onExpandBrowser }) {
   const idle = phase === 'idle' && agents.length === 0
 
   const runActive = phase === 'starting' || phase === 'running'
@@ -460,7 +711,34 @@ function WorkflowAgentPipeline({ phase, runId, input, agents, orchestratorStream
                       </div>
                     </div>
 
-                    {a.stream ? <StepOutputPeek stream={a.stream} onOpen={onOpenStream} embedded /> : null}
+                    {a.browserSession ? (
+                      <div className="mt-2 ml-6 max-w-xl">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <span className="flex space-x-2 items-center text-xs font-medium tracking-wide text-slate-500">
+                            <Globe className="w-4 h-4" />
+                            <span>Browsing the web...</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onExpandBrowser?.(a.agent_run_id)}
+                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                          >
+                            Expand view
+                          </button>
+                        </div>
+                        <BrowserStreamMiniPreview
+                          phase={a.browserSession.phase}
+                          streamingUrl={a.browserSession.streamingUrl}
+                          statusText={a.browserSession.statusText}
+                        />
+                      </div>
+                    ) : null}
+
+                    {a.browserBlogsSummary ? <AgentBrowserBlogsSummary summary={a.browserBlogsSummary} /> : null}
+
+                    {a.stream && !a.browserSession && !a.browserBlogsSummary ? (
+                      <StepOutputPeek stream={a.stream} onOpen={onOpenStream} embedded />
+                    ) : null}
 
                     <div className="mt-2 ml-1 border-l-2 border-gray-200/80 pl-3 space-y-2">
                       {(a.tools || [])
@@ -528,8 +806,21 @@ export function BusinessProfile() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [workflowViz, setWorkflowViz] = useState(WORKFLOW_VIZ_INITIAL)
   const [modalStep, setModalStep] = useState(null)
+  const [browserExpandAgentRunId, setBrowserExpandAgentRunId] = useState(null)
+
+  const expandedBrowserSession = useMemo(() => {
+    if (!browserExpandAgentRunId) return null
+    const agent = workflowViz.agents.find((x) => x.agent_run_id === browserExpandAgentRunId)
+    return agent?.browserSession ?? null
+  }, [browserExpandAgentRunId, workflowViz.agents])
 
   const abortRef = useRef(null)
+
+  useEffect(() => {
+    if (browserExpandAgentRunId && !expandedBrowserSession) {
+      setBrowserExpandAgentRunId(null)
+    }
+  }, [browserExpandAgentRunId, expandedBrowserSession])
 
   function stop() {
     if (abortRef.current) abortRef.current.abort()
@@ -558,6 +849,7 @@ export function BusinessProfile() {
     abortRef.current = new AbortController()
 
     setModalStep(null)
+    setBrowserExpandAgentRunId(null)
     setWorkflowViz(WORKFLOW_VIZ_INITIAL)
     setIsSubmitting(true)
 
@@ -603,7 +895,10 @@ export function BusinessProfile() {
           // Try JSON first; fallback to raw line output.
           const parsed = tryParseJsonLine(trimmed)
           if (parsed) {
-            setWorkflowViz((p) => applyWorkflowStreamEvent(p, parsed))
+            setWorkflowViz((p) => {
+              const afterWorkflow = applyWorkflowStreamEvent(p, parsed)
+              return applyBrowserStreamToWorkflow(afterWorkflow, parsed)
+            })
           }
           // Non-JSON lines are ignored for the workflow UI (no output/result payload).
         }
@@ -614,7 +909,10 @@ export function BusinessProfile() {
       if (last) {
         const parsed = tryParseJsonLine(last)
         if (parsed) {
-          setWorkflowViz((p) => applyWorkflowStreamEvent(p, parsed))
+          setWorkflowViz((p) => {
+            const afterWorkflow = applyWorkflowStreamEvent(p, parsed)
+            return applyBrowserStreamToWorkflow(afterWorkflow, parsed)
+          })
         }
       }
     } catch (e) {
@@ -672,6 +970,7 @@ export function BusinessProfile() {
             agents={workflowViz.agents}
             orchestratorStream={workflowViz.orchestratorStream}
             onOpenStream={setModalStep}
+            onExpandBrowser={setBrowserExpandAgentRunId}
           />
         </div>
       </div>
@@ -690,6 +989,19 @@ export function BusinessProfile() {
             {modalStep.body}
           </div>
         ) : null}
+      </SmartModal>
+
+      <SmartModal
+        open={Boolean(browserExpandAgentRunId && expandedBrowserSession)}
+        onClose={() => setBrowserExpandAgentRunId(null)}
+        animation="scale"
+        showHeader={false}
+        showFooter={false}
+        size="lg"
+        scrollMode="content"
+        radius="lg"
+      >
+        {expandedBrowserSession ? <BrowserExpandModalBody session={expandedBrowserSession} /> : null}
       </SmartModal>
     </div>
   )
