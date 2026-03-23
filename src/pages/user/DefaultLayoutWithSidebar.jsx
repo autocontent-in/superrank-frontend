@@ -32,6 +32,7 @@ import {
   Check,
   BarChart2,
   Fish,
+  MonitorSmartphone,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api'
@@ -53,6 +54,7 @@ const sidebarNav = [
     items: [
       { to: '/', label: 'Home', icon: House, end: true },
       { to: '/seo-analysis', label: 'SEO Analysis', icon: BarChart2 },
+      { to: '/friendliness-and-responsiveness', label: 'Friendliness and Responsiveness', icon: MonitorSmartphone },
       { to: '/all-files', label: 'All Files', icon: LayoutList },
       { to: '/groups', label: 'Groups', icon: FolderOpen },
       { to: '/documents', label: 'Documents', icon: FileText },

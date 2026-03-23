@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSnackbar } from '../../components/ui/SnackbarProvider'
 import AiApi from '../../api/AiApi'
+import Api from '../../api/api.jsx'
 
 export function Home() {
   const { user } = useAuth()
@@ -18,7 +19,8 @@ export function Home() {
     setSeoLoading(true)
     const toastId = showSnackbar({ message: 'Running SEO audit...', loading: true, duration: 0 })
     try {
-      await AiApi.post('/api/v1/seo-audit', { data: { domain: domain.trim() } })
+      const { data } = await AiApi.post('/api/v1/seo-audit', { data: { domain: domain.trim() } })
+      Api.post('/seo-audit/store', { data: { response: data } }).catch(() => {})
       updateSnackbar(toastId, { message: 'SEO audit completed.', variant: 'success', loading: false, duration: 3000 })
     } catch (err) {
       const message = err.response?.data?.detail?.message ?? err.response?.data?.message ?? 'SEO audit failed.'

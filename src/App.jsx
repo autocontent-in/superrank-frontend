@@ -14,6 +14,7 @@ import { AllFiles } from './pages/user/AllFiles'
 import { Ai } from './pages/user/Ai'
 import TinyFishAnalyze from './pages/user/TinyFishAnalyze'
 import { BusinessProfile } from './pages/user/BusinessProfile'
+import { FriendlinessAndResponsiveness } from './pages/user/FriendlinessAndResponsiveness'
 import { MultiAgentTest } from './pages/user/MultiAgentTest'
 import {
   Account,
@@ -43,6 +44,7 @@ const allRoutes = [
           { path: 'documents', element: <Documents /> },
           { path: 'tinyfish-test', element: <TinyFishAnalyze /> },
           { path: 'business-profile', element: <BusinessProfile /> },
+          { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
           { path: 'multi-agent-test', element: <MultiAgentTest /> },
           { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Ai /> : <Navigate to="/" replace /> },
           { path: 'groups', element: <Groups /> },

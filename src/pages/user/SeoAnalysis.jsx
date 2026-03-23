@@ -1512,6 +1512,16 @@ const summaryStats = [
   { label: 'IPs', value: '89' },
   { label: 'Subnets', value: '105' },
 ]
+
+/** Resolve stored/latest API payload into the shape expected by AuditDashboard (AI technical audit). */
+function technicalAuditFromLatestApiResponse(res) {
+  const candidates = [res?.data?.data?.response, res?.data?.data, res?.data]
+  for (const c of candidates) {
+    if (c && typeof c === 'object' && Array.isArray(c.checks)) return c
+  }
+  return null
+}
+
 export function SeoAnalysis() {
   const { user } = useAuth()
   const company = user?.default_company
@@ -1524,9 +1534,30 @@ export function SeoAnalysis() {
   const [technicalAuditData, setTechnicalAuditData] = useState(null)
   const [technicalAuditLoading, setTechnicalAuditLoading] = useState(false)
   const [technicalAuditError, setTechnicalAuditError] = useState(null)
+  const [latestAuditLoading, setLatestAuditLoading] = useState(true)
   const [competitors, setCompetitors] = useState([])
   const [competitorsLoading, setCompetitorsLoading] = useState(false)
   const [competitorsError, setCompetitorsError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLatestAuditLoading(true)
+    Api.get('/seo-audits/latest')
+      .then((res) => {
+        if (cancelled) return
+        const payload = technicalAuditFromLatestApiResponse(res)
+        if (payload) setTechnicalAuditData(payload)
+      })
+      .catch(() => {
+        /* no saved audit or error — keep empty state */
+      })
+      .finally(() => {
+        if (!cancelled) setLatestAuditLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!companyId) {
@@ -1570,6 +1601,7 @@ export function SeoAnalysis() {
     try {
       const { data } = await AiApi.post('/api/v1/technical-seo-audit', { data: { url: companyWebsite } })
       setTechnicalAuditData(data)
+      Api.post('/seo-audits', { data: data }).catch(() => {})
     } catch (err) {
       setTechnicalAuditError(err.response?.data?.message || err.message || 'Audit failed')
       setTechnicalAuditData(null)
@@ -1650,7 +1682,11 @@ export function SeoAnalysis() {
 
         {/* Technical SEO Audit */}
         <div className="mb-8">
-          {!technicalAuditData ? (
+          {latestAuditLoading ? (
+            <div className="flex flex-col items-center justify-center py-10 text-sm text-slate-500">
+              Loading latest audit…
+            </div>
+          ) : !technicalAuditData ? (
             <div className="flex flex-col items-center justify-center py-10">
               <button
                 type="button"
