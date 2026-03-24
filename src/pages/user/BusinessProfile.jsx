@@ -807,6 +807,8 @@ export function BusinessProfile() {
   const [workflowViz, setWorkflowViz] = useState(WORKFLOW_VIZ_INITIAL)
   const [modalStep, setModalStep] = useState(null)
   const [browserExpandAgentRunId, setBrowserExpandAgentRunId] = useState(null)
+  const [sseRawLogOpen, setSseRawLogOpen] = useState(false)
+  const [sseRawLines, setSseRawLines] = useState([])
 
   const expandedBrowserSession = useMemo(() => {
     if (!browserExpandAgentRunId) return null
@@ -851,6 +853,7 @@ export function BusinessProfile() {
     setModalStep(null)
     setBrowserExpandAgentRunId(null)
     setWorkflowViz(WORKFLOW_VIZ_INITIAL)
+    setSseRawLines([])
     setIsSubmitting(true)
 
     try {
@@ -889,6 +892,8 @@ export function BusinessProfile() {
         buffer = lines.pop() ?? ''
 
         for (const line of lines) {
+          setSseRawLines((prev) => [...prev, line])
+
           const trimmed = line.trim()
           if (!trimmed) continue
 
@@ -905,6 +910,9 @@ export function BusinessProfile() {
       }
 
       // Flush last partial line.
+      if (buffer.length > 0) {
+        setSseRawLines((prev) => [...prev, buffer])
+      }
       const last = buffer.trim()
       if (last) {
         const parsed = tryParseJsonLine(last)
@@ -917,6 +925,10 @@ export function BusinessProfile() {
       }
     } catch (e) {
       if (String(e?.name) === 'AbortError') return
+      setSseRawLines((prev) => [
+        ...prev,
+        `[${new Date().toISOString()}] ERROR: ${e?.message || String(e)}`,
+      ])
       showSnackbar({
         message: e?.message || String(e),
         variant: 'error',
@@ -942,7 +954,7 @@ export function BusinessProfile() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={createBusinessProfile}
@@ -958,6 +970,14 @@ export function BusinessProfile() {
               className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Stop
+            </button>
+            <button
+              type="button"
+              onClick={() => setSseRawLogOpen(true)}
+              disabled={sseRawLines.length === 0 && !isSubmitting}
+              className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Raw SSE log
             </button>
           </div>
         </div>
@@ -1002,6 +1022,28 @@ export function BusinessProfile() {
         radius="lg"
       >
         {expandedBrowserSession ? <BrowserExpandModalBody session={expandedBrowserSession} /> : null}
+      </SmartModal>
+
+      <SmartModal
+        open={sseRawLogOpen}
+        onClose={() => setSseRawLogOpen(false)}
+        animation="top"
+        title="Raw SSE log"
+        subtitle={isSubmitting ? 'Streaming…' : undefined}
+        size="xl"
+        contentClassName="p-0"
+        showFooter={false}
+        scrollMode="content"
+      >
+        <div className="max-h-[min(70vh,32rem)] overflow-auto bg-slate-950 px-4 py-3">
+          {sseRawLines.length === 0 ? (
+            <p className="text-sm text-slate-500 m-0">Waiting for stream lines…</p>
+          ) : (
+            <pre className="text-xs font-mono text-emerald-400/95 whitespace-pre-wrap break-all m-0">
+              {sseRawLines.join('\n')}
+            </pre>
+          )}
+        </div>
       </SmartModal>
     </div>
   )

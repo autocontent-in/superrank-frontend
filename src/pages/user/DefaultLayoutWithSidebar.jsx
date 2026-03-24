@@ -32,6 +32,7 @@ import {
   Check,
   BarChart2,
   Fish,
+  Layers2,
   MonitorSmartphone,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -59,6 +60,7 @@ const sidebarNav = [
       { to: '/groups', label: 'Groups', icon: FolderOpen },
       { to: '/documents', label: 'Documents', icon: FileText },
       { to: '/tinyfish-test', label: 'TinyFish Test', icon: Fish },
+      { to: '/multiple-tinyfish-test', label: 'Multiple TinyFish Test', icon: Layers2 },
       { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
       { to: '/multi-agent-test', label: 'multi agent test', icon: Sparkles },
       ...(isDev ? [{ to: '/ai', label: 'AI', icon: Sparkles }] : []),

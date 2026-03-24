@@ -13,6 +13,7 @@ import { Group } from './pages/user/Group'
 import { AllFiles } from './pages/user/AllFiles'
 import { Ai } from './pages/user/Ai'
 import TinyFishAnalyze from './pages/user/TinyFishAnalyze'
+import MultipleTinyFishTest from './pages/user/MultipleTinyFishTest'
 import { BusinessProfile } from './pages/user/BusinessProfile'
 import { FriendlinessAndResponsiveness } from './pages/user/FriendlinessAndResponsiveness'
 import { MultiAgentTest } from './pages/user/MultiAgentTest'
@@ -43,6 +44,7 @@ const allRoutes = [
           { path: 'all-files', element: <AllFiles /> },
           { path: 'documents', element: <Documents /> },
           { path: 'tinyfish-test', element: <TinyFishAnalyze /> },
+          { path: 'multiple-tinyfish-test', element: <MultipleTinyFishTest /> },
           { path: 'business-profile', element: <BusinessProfile /> },
           { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
           { path: 'multi-agent-test', element: <MultiAgentTest /> },
