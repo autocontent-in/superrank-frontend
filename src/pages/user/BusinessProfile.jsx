@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Globe } from 'lucide-react'
+import { Check, Globe, X } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSnackbar } from '../../components/ui/SnackbarProvider'
 import { SmartModal } from '../../components/ui/SmartModal'
+import Api from '../../api/api.jsx'
 
 const WORKFLOW_VIZ_INITIAL = {
   phase: 'idle',
@@ -10,6 +11,206 @@ const WORKFLOW_VIZ_INITIAL = {
   input: null,
   agents: [],
   orchestratorStream: null,
+}
+
+function getLogoUrl(name) {
+  const token = import.meta.env.VITE_LOGO_DEV_PUBLIC_KEY
+  if (token && name) return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${token}`
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name ?? '')}&background=6366f1&color=fff&size=80`
+}
+
+function normalizeWebsiteUrl(raw) {
+  if (!raw || typeof raw !== 'string') return null
+  const t = raw.trim()
+  if (!t || t === '-') return null
+  if (/^https?:\/\//i.test(t)) return t
+  return `https://${t}`
+}
+
+function initialsFromCompanyName(name) {
+  const s = (name || '').trim()
+  if (!s) return '?'
+  const words = s.split(/[\s._-]+/).filter(Boolean)
+  if (words.length >= 2) {
+    const a = words[0].match(/[a-zA-Z0-9]/)
+    const b = words[1].match(/[a-zA-Z0-9]/)
+    const pair = `${a ? a[0] : ''}${b ? b[0] : ''}`.toUpperCase()
+    if (pair) return pair
+  }
+  const alnum = s.replace(/[^a-zA-Z0-9]/g, '')
+  if (alnum.length >= 2) return alnum.slice(0, 2).toUpperCase()
+  return s.slice(0, 2).toUpperCase()
+}
+
+/** Normalize GET /companies/:id/competitors — `data` may be one object or a list of company rows. */
+function competitorsListFromResponse(res, companyId) {
+  const d = res?.data?.data
+  if (!d) return []
+  if (Array.isArray(d)) {
+    const match = companyId != null ? d.find((row) => String(row?.id) === String(companyId)) : null
+    const row = match ?? d[0]
+    return Array.isArray(row?.competitors) ? row.competitors : []
+  }
+  if (typeof d === 'object' && Array.isArray(d.competitors)) return d.competitors
+  return []
+}
+
+const COMPETITOR_STACK_MAX_VISIBLE = 5
+
+const COMPETITOR_STACK_TRANSITION =
+  'transition-[margin,width,min-width,max-width,opacity,transform] duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0'
+
+function CompetitorAvatarItem({ competitor, stackIndex, overlap = true }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const name = (competitor.company_name || '').trim() || 'Unknown'
+  const href = normalizeWebsiteUrl(competitor.company_website)
+  const logoSrc = getLogoUrl(name)
+  const initials = initialsFromCompanyName(name)
+
+  const hoverMotion = overlap ? 'group-hover:-translate-x-2' : 'group-hover:scale-105'
+
+  const avatar = (
+    <div
+      className={`relative h-8 w-8 shrink-0 overflow-hidden rounded-full border-2 border-white bg-slate-100 shadow-sm transition-transform duration-200 ease-out ${hoverMotion}`}
+    >
+      {!imgFailed ? (
+        <img src={logoSrc} alt="" className="h-full w-full object-cover" onError={() => setImgFailed(true)} />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-orange-500 px-0.5 text-center text-[10px] font-semibold leading-tight text-white">
+          {initials}
+        </div>
+      )}
+    </div>
+  )
+
+  const tooltip = (
+    <span className="pointer-events-none absolute top-[calc(100%+40px)] left-1/2 z-60 -translate-x-2 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+      {name}
+    </span>
+  )
+
+  const className = `group relative ${overlap && stackIndex > 0 ? '-ml-4' : ''} outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-full`
+  const zStyle = overlap ? { zIndex: stackIndex + 1 } : undefined
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className} style={zStyle}>
+        {avatar}
+        {tooltip}
+      </a>
+    )
+  }
+
+  return (
+    <div
+      className={className}
+      style={zStyle}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.zIndex = 50
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.zIndex = stackIndex + 1
+      }}
+    >
+      {avatar}
+      {tooltip}
+    </div>
+  )
+}
+
+function CompetitorAvatarStack({ competitors, loading, errorMessage }) {
+  const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    setExpanded(false)
+  }, [competitors])
+
+  if (loading) {
+    return (
+      <div className="flex items-center pl-1" aria-busy="true" aria-label="Loading competitors">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={`h-10 w-10 shrink-0 rounded-full border-2 border-white bg-slate-200 animate-pulse ${i > 0 ? '-ml-3' : ''}`}
+            style={{ zIndex: i + 1 }}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return <p className="text-sm text-slate-400">{errorMessage}</p>
+  }
+
+  if (!competitors?.length) return null
+
+  const overflow = Math.max(0, competitors.length - COMPETITOR_STACK_MAX_VISIBLE)
+
+  if (overflow === 0) {
+    return (
+      <div className="flex items-center pl-1">
+        {competitors.map((c, i) => (
+          <CompetitorAvatarItem key={c.id ?? `${c.company_name}-${i}`} competitor={c} stackIndex={i} overlap />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className={`flex max-w-md items-center justify-end pl-1 sm:max-w-lg ${expanded ? 'flex-wrap gap-0' : 'flex-nowrap gap-0'} motion-reduce:transition-none`}>
+      {competitors.map((c, i) => {
+        const inCollapsedStack = i < COMPETITOR_STACK_MAX_VISIBLE
+        return (
+          <div
+            key={c.id ?? `${c.company_name}-${i}`}
+            className={[
+              'shrink-0 rounded-full',
+              COMPETITOR_STACK_TRANSITION,
+              expanded
+                ? 'ml-0 w-10 min-w-10 max-w-10 overflow-visible opacity-100 scale-100'
+                : inCollapsedStack
+                  ? `min-w-10 max-w-10 w-10 overflow-visible opacity-100 scale-100 ${i > 0 ? '-ml-4' : ''}`
+                  : 'ml-0 max-h-10 min-h-10 min-w-0 max-w-0 w-0 overflow-hidden opacity-0 scale-90 pointer-events-none',
+            ].join(' ')}
+            style={{ zIndex: expanded ? undefined : inCollapsedStack ? i + 1 : 0 }}
+          >
+            <CompetitorAvatarItem competitor={c} stackIndex={0} overlap={false} />
+          </div>
+        )
+      })}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className={[
+          'relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-slate-200 text-slate-700 shadow-sm',
+          'transition-[margin,opacity,background-color] duration-300 ease-out hover:bg-slate-300 motion-reduce:transition-none motion-reduce:duration-0',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+          expanded ? 'ml-0' : '-ml-4',
+        ].join(' ')}
+        style={{ zIndex: expanded ? competitors.length + 2 : COMPETITOR_STACK_MAX_VISIBLE + 1 }}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse competitors list' : `Show ${overflow} more competitors`}
+      >
+        <span
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ease-out ${
+            expanded ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+          aria-hidden={expanded}
+        >
+          <span className="text-sm font-semibold">+{overflow}</span>
+        </span>
+        <span
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ease-out ${
+            expanded ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+          aria-hidden={!expanded}
+        >
+          <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+        </span>
+      </button>
+    </div>
+  )
 }
 
 /** Inner payload mirrors TinyFishAnalyze stream events (STARTED, STREAMING_URL, PROGRESS, COMPLETE). */
@@ -87,6 +288,89 @@ function formatBlogDate(iso) {
   if (iso == null || iso === '') return '—'
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
+function SavedProfileCard({ title, children }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-4">{title}</h2>
+      <div className="space-y-3">{children}</div>
+    </div>
+  )
+}
+
+function ProfileKVRow({ label, value }) {
+  if (value == null || value === '') return null
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,148px)_1fr] gap-1 sm:gap-3 text-sm">
+      <div className="text-slate-500 shrink-0">{label}</div>
+      <div className="text-slate-800 whitespace-pre-wrap wrap-break-word min-w-0">{value}</div>
+    </div>
+  )
+}
+
+function ProfileStringList({ label, items }) {
+  if (!Array.isArray(items) || items.length === 0) return null
+  return (
+    <div>
+      <div className="text-sm text-slate-500 mb-1">{label}</div>
+      <ul className="list-disc pl-5 text-sm text-slate-800 space-y-0.5 m-0">
+        {items.map((x, i) => (
+          <li key={i}>{String(x)}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function SavedProfileBlogsSection({ blogsList }) {
+  if (!blogsList || typeof blogsList !== 'object') return null
+  const found = blogsList.blogs_page_found === true || blogsList.blogs_page_found === 'true'
+  const pageUrl = String(blogsList.blogs_page_url ?? '').trim()
+  const blogs = Array.isArray(blogsList.blogs) ? blogsList.blogs : []
+
+  return (
+    <SavedProfileCard title="Blog posts">
+      <ProfileKVRow label="Blogs page found" value={found ? 'Yes' : 'No'} />
+      {pageUrl ? (
+        <div className="text-sm">
+          <span className="text-slate-500">Blogs page URL: </span>
+          <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline break-all">
+            {pageUrl}
+          </a>
+        </div>
+      ) : null}
+      {blogs.length === 0 ? (
+        <p className="text-sm text-slate-500 m-0">No blog posts listed.</p>
+      ) : (
+        <ul className="list-none m-0 p-0 space-y-4">
+          {blogs.map((b, i) => {
+            const title = b?.title != null ? String(b.title) : '—'
+            const link = b?.link != null ? String(b.link).trim() : ''
+            const when = formatBlogDate(b?.date ?? b?.datetime)
+            const summary = b?.summary != null ? String(b.summary) : ''
+            return (
+              <li key={`${link || title}-${i}`} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+                <div className="font-medium text-slate-900 text-sm leading-snug">{title}</div>
+                <div className="mt-1 text-xs text-slate-500">{when}</div>
+                {link ? (
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-sm text-blue-600 hover:text-blue-800 underline break-all"
+                  >
+                    {link}
+                  </a>
+                ) : null}
+                {summary ? <p className="mt-2 text-sm text-slate-700 m-0 leading-relaxed">{summary}</p> : null}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </SavedProfileCard>
+  )
 }
 
 function AgentBrowserBlogsSummary({ summary }) {
@@ -802,13 +1086,30 @@ export function BusinessProfile() {
 
   const company_name = (user?.default_company?.company_name || user?.default_company?.name || '').trim()
   const company_website = (user?.default_company?.website || user?.default_company?.company_website || '').trim()
+  const companyId = user?.default_company?.id ?? user?.default_company?.uuid ?? null
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSavingBusinessProfile, setIsSavingBusinessProfile] = useState(false)
+  const [isLoadingLatestBusinessProfile, setIsLoadingLatestBusinessProfile] = useState(true)
+  const [latestBusinessProfile, setLatestBusinessProfile] = useState(null)
+  const [showWorkflowUI, setShowWorkflowUI] = useState(false)
+  const [showSaveActions, setShowSaveActions] = useState(false)
+
+  const [competitors, setCompetitors] = useState([])
+  const [competitorsLoading, setCompetitorsLoading] = useState(false)
+  const [competitorsError, setCompetitorsError] = useState(null)
+
+  // Company inputs used to run the workflow. When re-creating, we override these from the latest profile.
+  const [activeCompanyName, setActiveCompanyName] = useState(company_name)
+  const [activeCompanyWebsite, setActiveCompanyWebsite] = useState(company_website)
+
   const [workflowViz, setWorkflowViz] = useState(WORKFLOW_VIZ_INITIAL)
   const [modalStep, setModalStep] = useState(null)
   const [browserExpandAgentRunId, setBrowserExpandAgentRunId] = useState(null)
   const [sseRawLogOpen, setSseRawLogOpen] = useState(false)
   const [sseRawLines, setSseRawLines] = useState([])
+  const [completedBusinessProfilePayload, setCompletedBusinessProfilePayload] = useState(null)
+  const [completedBusinessProfileRunId, setCompletedBusinessProfileRunId] = useState(null)
 
   const expandedBrowserSession = useMemo(() => {
     if (!browserExpandAgentRunId) return null
@@ -824,10 +1125,93 @@ export function BusinessProfile() {
     }
   }, [browserExpandAgentRunId, expandedBrowserSession])
 
+  // Keep workflow inputs synced with the selected company when we are not showing the saved profile UI.
+  useEffect(() => {
+    if (showWorkflowUI) return
+    if (isSubmitting) return
+    setActiveCompanyName(company_name)
+    setActiveCompanyWebsite(company_website)
+  }, [company_name, company_website, isSubmitting, showWorkflowUI])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadLatest() {
+      setIsLoadingLatestBusinessProfile(true)
+      try {
+        const res = await Api.get('/business-profiles/latest')
+        if (cancelled) return
+        const payload = res?.data?.data ?? null
+        setLatestBusinessProfile(payload)
+        setShowWorkflowUI(false)
+      } catch (e) {
+        if (cancelled) return
+        const status = e?.response?.status
+        if (status !== 404) {
+          showSnackbar({
+            message: e?.message || 'Failed to load latest business profile',
+            variant: 'error',
+            duration: 5000,
+          })
+        }
+        setLatestBusinessProfile(null)
+        setShowWorkflowUI(false)
+      } finally {
+        if (!cancelled) setIsLoadingLatestBusinessProfile(false)
+      }
+    }
+    loadLatest()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    // When the workflow hits DONE, reveal the save controls (if we don't have a payload yet, buttons will disable).
+    if (workflowViz.phase === 'completed') {
+      setShowSaveActions(true)
+    } else {
+      setShowSaveActions(false)
+    }
+  }, [workflowViz.phase])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadCompetitors() {
+      if (!companyId) {
+        setCompetitors([])
+        setCompetitorsError(null)
+        setCompetitorsLoading(false)
+        return
+      }
+      setCompetitorsLoading(true)
+      setCompetitorsError(null)
+      try {
+        const res = await Api.get(`/companies/${companyId}/competitors`)
+        if (cancelled) return
+        const list = competitorsListFromResponse(res, companyId)
+        setCompetitors(list)
+      } catch (e) {
+        if (cancelled) return
+        setCompetitors([])
+        setCompetitorsError('Unable to load competitors')
+      } finally {
+        if (!cancelled) setCompetitorsLoading(false)
+      }
+    }
+    loadCompetitors()
+    return () => {
+      cancelled = true
+    }
+  }, [companyId])
+
   function stop() {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = null
     setIsSubmitting(false)
+    setCompletedBusinessProfilePayload(null)
+    setCompletedBusinessProfileRunId(null)
+    setShowSaveActions(false)
   }
 
   useEffect(() => {
@@ -835,10 +1219,13 @@ export function BusinessProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function createBusinessProfile() {
+  async function createBusinessProfile(overrides = {}) {
     if (isSubmitting) return
 
-    if (!company_name || !company_website) {
+    const nameToUse = String(overrides.company_name ?? activeCompanyName ?? '').trim()
+    const websiteToUse = String(overrides.company_website ?? activeCompanyWebsite ?? '').trim()
+
+    if (!nameToUse || !websiteToUse) {
       showSnackbar({
         message: 'Add a company name and website first (from your selected company).',
         variant: 'error',
@@ -847,6 +1234,8 @@ export function BusinessProfile() {
       return
     }
 
+    setShowWorkflowUI(true)
+
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
 
@@ -854,6 +1243,9 @@ export function BusinessProfile() {
     setBrowserExpandAgentRunId(null)
     setWorkflowViz(WORKFLOW_VIZ_INITIAL)
     setSseRawLines([])
+    setCompletedBusinessProfilePayload(null)
+    setCompletedBusinessProfileRunId(null)
+    setShowSaveActions(false)
     setIsSubmitting(true)
 
     try {
@@ -865,8 +1257,8 @@ export function BusinessProfile() {
         },
         body: JSON.stringify({
           data: {
-            company_name,
-            company_website,
+            company_name: nameToUse,
+            company_website: websiteToUse,
           },
         }),
         signal: abortRef.current.signal,
@@ -900,6 +1292,10 @@ export function BusinessProfile() {
           // Try JSON first; fallback to raw line output.
           const parsed = tryParseJsonLine(trimmed)
           if (parsed) {
+            if (parsed.type === 'workflow' && parsed.event === 'completed' && parsed.data) {
+              setCompletedBusinessProfilePayload(parsed.data)
+              setCompletedBusinessProfileRunId(parsed.run_id ?? parsed.data.run_id ?? null)
+            }
             setWorkflowViz((p) => {
               const afterWorkflow = applyWorkflowStreamEvent(p, parsed)
               return applyBrowserStreamToWorkflow(afterWorkflow, parsed)
@@ -917,6 +1313,10 @@ export function BusinessProfile() {
       if (last) {
         const parsed = tryParseJsonLine(last)
         if (parsed) {
+          if (parsed.type === 'workflow' && parsed.event === 'completed' && parsed.data) {
+            setCompletedBusinessProfilePayload(parsed.data)
+            setCompletedBusinessProfileRunId(parsed.run_id ?? parsed.data.run_id ?? null)
+          }
           setWorkflowViz((p) => {
             const afterWorkflow = applyWorkflowStreamEvent(p, parsed)
             return applyBrowserStreamToWorkflow(afterWorkflow, parsed)
@@ -940,59 +1340,322 @@ export function BusinessProfile() {
     }
   }
 
+  async function saveBusinessProfile() {
+    if (!completedBusinessProfilePayload) return
+    if (isSavingBusinessProfile) return
+
+    setIsSavingBusinessProfile(true)
+    try {
+      await Api.post('/business-profiles', { data: completedBusinessProfilePayload })
+      showSnackbar({
+        message: 'Business Profile saved.',
+        variant: 'success',
+        duration: 3000,
+      })
+      setLatestBusinessProfile(completedBusinessProfilePayload)
+      setActiveCompanyName(String(completedBusinessProfilePayload?.company_name ?? activeCompanyName).trim())
+      setActiveCompanyWebsite(String(completedBusinessProfilePayload?.website ?? activeCompanyWebsite).trim())
+      setShowWorkflowUI(false)
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.detail ||
+        e?.message ||
+        'Failed to save Business Profile'
+      showSnackbar({ message: msg, variant: 'error', duration: 5000 })
+    } finally {
+      setIsSavingBusinessProfile(false)
+    }
+  }
+
+  function cancelSaveActions() {
+    if (isSavingBusinessProfile) return
+
+    setCompletedBusinessProfilePayload(null)
+    setCompletedBusinessProfileRunId(null)
+    setShowSaveActions(false)
+
+    // If we already have a saved profile, return to its view.
+    if (latestBusinessProfile) {
+      setShowWorkflowUI(false)
+    } else {
+      setWorkflowViz(WORKFLOW_VIZ_INITIAL)
+      setSseRawLines([])
+    }
+  }
+
+  const latestWebsiteData = latestBusinessProfile?.website_data ?? null
+  const latestCompanyName = String(latestBusinessProfile?.company_name ?? '').trim()
+  const latestCompanyWebsite = String(latestBusinessProfile?.website ?? '').trim()
+  const latestH1 = Array.isArray(latestWebsiteData?.h1) ? latestWebsiteData.h1 : []
+  const latestH2 = Array.isArray(latestWebsiteData?.h2) ? latestWebsiteData.h2 : []
+  const latestLinks = Array.isArray(latestWebsiteData?.links) ? latestWebsiteData.links : []
+  const latestContent = latestWebsiteData?.content ? String(latestWebsiteData.content) : ''
+  const latestCompanyInfo = latestBusinessProfile?.company_info ?? null
+  const latestProfileId = latestBusinessProfile?.id ?? null
+  const latestProfileRunId = latestBusinessProfile?.run_id ?? null
+  const latestMessages = Array.isArray(latestBusinessProfile?.messages) ? latestBusinessProfile.messages : []
+  const latestCompanyIdentity = latestBusinessProfile?.company_identity ?? null
+  const latestDigitalPresence = latestBusinessProfile?.company_digital_presence ?? null
+  const latestBlogsList = latestBusinessProfile?.blogs_list ?? null
+  const latestStepLogs = Array.isArray(latestBusinessProfile?.step_logs) ? latestBusinessProfile.step_logs : []
+  const latestSocialLinks = Array.isArray(latestDigitalPresence?.social_links) ? latestDigitalPresence.social_links : []
+
+  const activeLogoUrl = getLogoUrl(activeCompanyName)
+  const activeWebsiteHref = activeCompanyWebsite
+    ? activeCompanyWebsite.startsWith('http')
+      ? activeCompanyWebsite
+      : `https://${activeCompanyWebsite}`
+    : ''
+  const activeWebsiteDisplay = activeCompanyWebsite
+    ? activeCompanyWebsite.replace(/^https?:\/\//, '').replace(/^www\./, '')
+    : ''
+
+  function recreateFromLatest() {
+    if (!latestBusinessProfile) return
+    setActiveCompanyName(latestCompanyName)
+    setActiveCompanyWebsite(latestCompanyWebsite)
+    createBusinessProfile({ company_name: latestCompanyName, company_website: latestCompanyWebsite })
+  }
+
   return (
     <div className="px-4 pt-6 pb-12 sm:pt-6 sm:pb-16 w-full min-h-full overflow-y-auto">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="min-w-[240px]">
-            <h2 className="text-xl font-semibold text-slate-900">Business Profile</h2>
-            <p className="text-sm text-slate-600 mt-1">
-              {company_name ? <span className="font-medium text-slate-800">{company_name}</span> : <span className="text-slate-400">No company selected</span>}
-              {company_website ? (
-                <span className="block text-xs text-slate-500 mt-1 break-all">Website: {company_website}</span>
+      <div className="mx-auto max-w-6xl">
+        {isLoadingLatestBusinessProfile ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
+            Loading business profile…
+          </div>
+        ) : latestBusinessProfile && !showWorkflowUI ? (
+          <div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-4 min-w-0">
+                <div className="flex items-center gap-4 min-w-0">
+                  <img
+                    src={activeLogoUrl}
+                    alt={`${activeCompanyName || 'company'} logo`}
+                    className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100 border border-slate-200"
+                  />
+                  <div className="min-w-0">
+                    <h1 className="text-xl font-semibold text-slate-800 truncate">{activeCompanyName || '—'}</h1>
+                    {activeWebsiteDisplay ? (
+                      <a
+                        href={activeWebsiteHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-slate-500 hover:text-slate-700 truncate block"
+                      >
+                        {activeWebsiteDisplay}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+
+                <CompetitorAvatarStack competitors={competitors} loading={competitorsLoading} errorMessage={competitorsError} />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <h1 className="text-2xl font-semibold text-slate-900">Business Profile</h1>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={recreateFromLatest}
+                    disabled={isSubmitting || isSavingBusinessProfile}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 underline decoration-dashed underline-offset-4 text-sm font-semibold decoration-gray-400 hover:decoration-gray-500 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Re-creating…' : 'Re-create business profile'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {latestMessages.length > 0 ? (
+                <SavedProfileCard title="Messages">
+                  <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap wrap-break-word m-0 max-h-40 overflow-auto">
+                    {JSON.stringify(latestMessages, null, 2)}
+                  </pre>
+                </SavedProfileCard>
               ) : null}
-            </p>
-          </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={createBusinessProfile}
-              disabled={isSubmitting || !company_name || !company_website}
-              className="rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? 'Creating…' : 'Create my business profile'}
-            </button>
-            <button
-              type="button"
-              onClick={stop}
-              disabled={!isSubmitting}
-              className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Stop
-            </button>
-            <button
-              type="button"
-              onClick={() => setSseRawLogOpen(true)}
-              disabled={sseRawLines.length === 0 && !isSubmitting}
-              className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Raw SSE log
-            </button>
-          </div>
-        </div>
+              {latestCompanyInfo && typeof latestCompanyInfo === 'object' ? (
+                <SavedProfileCard title="Company overview">
+                  <ProfileKVRow label="Brand" value={latestCompanyInfo.brand} />
+                  <ProfileKVRow label="Domain" value={latestCompanyInfo.domain} />
+                  <ProfileKVRow label="Industry" value={latestCompanyInfo.industry} />
+                  <ProfileKVRow label="Company type" value={latestCompanyInfo.company_type} />
+                  <ProfileKVRow label="Product category" value={latestCompanyInfo.product_category} />
+                  <ProfileKVRow label="Services provided" value={latestCompanyInfo.services_provided} />
+                  <ProfileKVRow label="Key keywords" value={latestCompanyInfo.key_keywords} />
+                  <ProfileStringList label="Known competitors" items={latestCompanyInfo.known_competitors} />
+                </SavedProfileCard>
+              ) : null}
 
-        <div className="mt-5">
-          <WorkflowAgentPipeline
-            phase={workflowViz.phase}
-            runId={workflowViz.runId}
-            input={workflowViz.input}
-            agents={workflowViz.agents}
-            orchestratorStream={workflowViz.orchestratorStream}
-            onOpenStream={setModalStep}
-            onExpandBrowser={setBrowserExpandAgentRunId}
-          />
-        </div>
+              {latestCompanyIdentity && typeof latestCompanyIdentity === 'object' ? (
+                <SavedProfileCard title="Company identity">
+                  <ProfileKVRow label="Type" value={latestCompanyIdentity.type} />
+                  <ProfileKVRow label="Legal name" value={latestCompanyIdentity.business_legal_name} />
+                  <ProfileKVRow label="Description" value={latestCompanyIdentity.description} />
+                  <ProfileKVRow label="Industry" value={latestCompanyIdentity.industry} />
+                  <ProfileKVRow label="Founded" value={latestCompanyIdentity.founded_year} />
+                  <ProfileKVRow label="Headquarters" value={latestCompanyIdentity.headquarter_location} />
+                  <ProfileKVRow label="Offices" value={latestCompanyIdentity.office_locations} />
+                  <ProfileKVRow label="Employees" value={latestCompanyIdentity.total_employees_working} />
+                  <ProfileKVRow label="Business model" value={latestCompanyIdentity.business_model} />
+                  <ProfileKVRow label="Type of business" value={latestCompanyIdentity.type_of_business} />
+                  <ProfileKVRow label="Core values" value={latestCompanyIdentity.core_values} />
+                </SavedProfileCard>
+              ) : null}
+
+              {latestSocialLinks.length > 0 ? (
+                <SavedProfileCard title="Digital presence">
+                  <ul className="list-none m-0 p-0 space-y-3">
+                    {latestSocialLinks.map((s, i) => {
+                      const name = s?.name != null ? String(s.name) : '—'
+                      const link = s?.link != null ? String(s.link).trim() : ''
+                      const count = s?.count
+                      return (
+                        <li key={`${name}-${i}`} className="text-sm">
+                          <div className="font-medium text-slate-900">{name}</div>
+                          {count != null && String(count) !== '' ? (
+                            <div className="text-xs text-slate-500 mt-0.5">{String(count)}</div>
+                          ) : null}
+                          {link ? (
+                            <a
+                              href={link.startsWith('http') ? link : `https://${link}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline break-all mt-1 inline-block"
+                            >
+                              {link}
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 text-xs">No link</span>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </SavedProfileCard>
+              ) : null}
+
+              <SavedProfileBlogsSection blogsList={latestBlogsList} />
+
+              {latestStepLogs.length > 0 ? (
+                <SavedProfileCard title="Step logs">
+                  <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap wrap-break-word m-0 max-h-64 overflow-auto">
+                    {JSON.stringify(latestStepLogs, null, 2)}
+                  </pre>
+                </SavedProfileCard>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-4 min-w-0">
+                  <img
+                    src={activeLogoUrl}
+                    alt={`${activeCompanyName || 'company'} logo`}
+                    className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100 border border-slate-200"
+                  />
+                  <div className="min-w-0">
+                    <h1 className="text-xl font-semibold text-slate-800 truncate">{activeCompanyName || '—'}</h1>
+                    {activeWebsiteDisplay ? (
+                      <a
+                        href={activeWebsiteHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-slate-500 hover:text-slate-700 truncate block"
+                      >
+                        {activeWebsiteDisplay}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+                <h1 className="mt-2 text-2xl font-semibold text-slate-900">Business Profile</h1>
+              </div>
+
+              <div className="flex flex-col items-end gap-2">
+                <CompetitorAvatarStack competitors={competitors} loading={competitorsLoading} errorMessage={competitorsError} />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={createBusinessProfile}
+                    disabled={isSubmitting || !activeCompanyName || !activeCompanyWebsite}
+                    className="rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isSubmitting ? 'Creating…' : 'Create my business profile'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stop}
+                    disabled={!isSubmitting}
+                    className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSseRawLogOpen(true)}
+                    disabled={sseRawLines.length === 0 && !isSubmitting}
+                    className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Raw SSE log
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <WorkflowAgentPipeline
+                phase={workflowViz.phase}
+                runId={workflowViz.runId}
+                input={workflowViz.input}
+                agents={workflowViz.agents}
+                orchestratorStream={workflowViz.orchestratorStream}
+                onOpenStream={setModalStep}
+                onExpandBrowser={setBrowserExpandAgentRunId}
+              />
+            </div>
+
+            {workflowViz.phase === 'completed' ? (
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                {showSaveActions ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={saveBusinessProfile}
+                      disabled={isSavingBusinessProfile || !completedBusinessProfilePayload}
+                      className="rounded-lg bg-emerald-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title={completedBusinessProfileRunId ? `Run: ${completedBusinessProfileRunId}` : undefined}
+                    >
+                      {isSavingBusinessProfile ? 'Saving…' : 'Save Business Profile'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelSaveActions}
+                      disabled={isSavingBusinessProfile}
+                      className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveActions(true)}
+                    disabled={!completedBusinessProfilePayload || isSavingBusinessProfile}
+                    className="text-sm text-blue-700 hover:text-blue-800 underline underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Click here to save
+                  </button>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <SmartModal
