@@ -19,6 +19,12 @@ function getLogoUrl(name) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name ?? '')}&background=6366f1&color=fff&size=80`
 }
 
+function formatNumber(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return String(value ?? '')
+  return new Intl.NumberFormat('en-US').format(n)
+}
+
 function normalizeWebsiteUrl(raw) {
   if (!raw || typeof raw !== 'string') return null
   const t = raw.trim()
@@ -193,17 +199,15 @@ function CompetitorAvatarStack({ competitors, loading, errorMessage }) {
         aria-label={expanded ? 'Collapse competitors list' : `Show ${overflow} more competitors`}
       >
         <span
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ease-out ${
-            expanded ? 'pointer-events-none opacity-0' : 'opacity-100'
-          }`}
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ease-out ${expanded ? 'pointer-events-none opacity-0' : 'opacity-100'
+            }`}
           aria-hidden={expanded}
         >
           <span className="text-sm font-semibold">+{overflow}</span>
         </span>
         <span
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ease-out ${
-            expanded ? 'opacity-100' : 'pointer-events-none opacity-0'
-          }`}
+          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ease-out ${expanded ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
           aria-hidden={!expanded}
         >
           <X className="h-4 w-4" strokeWidth={2.5} aria-hidden />
@@ -292,7 +296,7 @@ function formatBlogDate(iso) {
 
 function SavedProfileCard({ title, children }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-lg border border-slate-200 bg-white p-6">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-4">{title}</h2>
       <div className="space-y-3">{children}</div>
     </div>
@@ -331,7 +335,6 @@ function SavedProfileBlogsSection({ blogsList }) {
 
   return (
     <SavedProfileCard title="Blog posts">
-      <ProfileKVRow label="Blogs page found" value={found ? 'Yes' : 'No'} />
       {pageUrl ? (
         <div className="text-sm">
           <span className="text-slate-500">Blogs page URL: </span>
@@ -350,9 +353,7 @@ function SavedProfileBlogsSection({ blogsList }) {
             const when = formatBlogDate(b?.date ?? b?.datetime)
             const summary = b?.summary != null ? String(b.summary) : ''
             return (
-              <li key={`${link || title}-${i}`} className="border-b border-slate-100 pb-4 last:border-0 last:pb-0">
-                <div className="font-medium text-slate-900 text-sm leading-snug">{title}</div>
-                <div className="mt-1 text-xs text-slate-500">{when}</div>
+              <li key={`${link || title}-${i}`} className="border-b border-dashed border-slate-200 pb-4 last:border-0 last:pb-0">
                 {link ? (
                   <a
                     href={link}
@@ -360,9 +361,10 @@ function SavedProfileBlogsSection({ blogsList }) {
                     rel="noopener noreferrer"
                     className="mt-1 inline-block text-sm text-blue-600 hover:text-blue-800 underline break-all"
                   >
-                    {link}
+                    {title}
                   </a>
                 ) : null}
+                <div className="mt-1 text-xs text-slate-500">{when}</div>
                 {summary ? <p className="mt-2 text-sm text-slate-700 m-0 leading-relaxed">{summary}</p> : null}
               </li>
             )
@@ -599,11 +601,11 @@ function applyWorkflowStreamEvent(prev, evt) {
       const agents = prev.agents.map((a) =>
         a.agent_run_id === evt.agent_run_id
           ? {
-              ...a,
-              status: 'done',
-              stream: payload ?? a.stream,
-              tools: (a.tools || []).map((t) => (t.status === 'running' ? { ...t, status: 'done' } : t)),
-            }
+            ...a,
+            status: 'done',
+            stream: payload ?? a.stream,
+            tools: (a.tools || []).map((t) => (t.status === 'running' ? { ...t, status: 'done' } : t)),
+          }
           : a,
       )
       return { ...prev, agents }
@@ -801,9 +803,8 @@ function StepOutputPeek({ stream, onOpen, embedded = false }) {
       <div className="relative mt-2">
         <div className="relative max-h-96 overflow-hidden rounded-md border-x border-t border-slate-100 bg-white px-2 py-1.5">
           <div
-            className={`leading-relaxed text-slate-700 whitespace-pre-wrap wrap-break-word ${
-              embedded ? 'text-xs' : 'text-sm'
-            }`}
+            className={`leading-relaxed text-slate-700 whitespace-pre-wrap wrap-break-word ${embedded ? 'text-xs' : 'text-sm'
+              }`}
           >
             {preview.text}
           </div>
@@ -814,15 +815,14 @@ function StepOutputPeek({ stream, onOpen, embedded = false }) {
             />
           ) : null}
         </div>
-      <button
-        type="button"
-        onClick={openModal}
-        className={`absolute w-full text-left -bottom-4 px-2 py-1.5 text-gray-500 hover:text-gray-700 underline decoration-gray-400 decoration-dashed underline-offset-4 hover:decoration-gray-600 ${
-          embedded ? 'text-xs' : 'text-sm'
-        }`}
-      >
-        {preview.truncated ? 'Show more...' : 'View full'}
-      </button>
+        <button
+          type="button"
+          onClick={openModal}
+          className={`absolute w-full text-left -bottom-4 px-2 py-1.5 text-gray-500 hover:text-gray-700 underline decoration-gray-400 decoration-dashed underline-offset-4 hover:decoration-gray-600 ${embedded ? 'text-xs' : 'text-sm'
+            }`}
+        >
+          {preview.truncated ? 'Show more...' : 'View full'}
+        </button>
       </div>
     </div>
   )
@@ -1421,55 +1421,57 @@ export function BusinessProfile() {
   return (
     <div className="px-4 pt-6 pb-12 sm:pt-6 sm:pb-16 w-full min-h-full overflow-y-auto">
       <div className="mx-auto max-w-6xl">
-        {isLoadingLatestBusinessProfile ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
-            Loading business profile…
-          </div>
-        ) : latestBusinessProfile && !showWorkflowUI ? (
-          <div>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-4 min-w-0">
-                <div className="flex items-center gap-4 min-w-0">
-                  <img
-                    src={activeLogoUrl}
-                    alt={`${activeCompanyName || 'company'} logo`}
-                    className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100 border border-slate-200"
-                  />
-                  <div className="min-w-0">
-                    <h1 className="text-xl font-semibold text-slate-800 truncate">{activeCompanyName || '—'}</h1>
-                    {activeWebsiteDisplay ? (
-                      <a
-                        href={activeWebsiteHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-slate-500 hover:text-slate-700 truncate block"
-                      >
-                        {activeWebsiteDisplay}
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-
-                <CompetitorAvatarStack competitors={competitors} loading={competitorsLoading} errorMessage={competitorsError} />
-              </div>
-
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <h1 className="text-2xl font-semibold text-slate-900">Business Profile</h1>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={recreateFromLatest}
-                    disabled={isSubmitting || isSavingBusinessProfile}
-                    className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 underline decoration-dashed underline-offset-4 text-sm font-semibold decoration-gray-400 hover:decoration-gray-500 disabled:pointer-events-none disabled:opacity-50"
+        {/* Header (always visible) */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4 min-w-0">
+            <div className="flex items-center gap-4 min-w-0">
+              <img
+                src={activeLogoUrl}
+                alt={`${activeCompanyName || 'company'} logo`}
+                className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100 border border-slate-200"
+              />
+              <div className="min-w-0">
+                <h1 className="text-xl font-semibold text-slate-800 truncate">{activeCompanyName || '—'}</h1>
+                {activeWebsiteDisplay ? (
+                  <a
+                    href={activeWebsiteHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-slate-500 hover:text-slate-700 truncate block"
                   >
-                    {isSubmitting ? 'Re-creating…' : 'Re-create business profile'}
-                  </button>
-                </div>
+                    {activeWebsiteDisplay}
+                  </a>
+                ) : null}
               </div>
             </div>
 
-            <div className="mt-5 space-y-5">
+            <CompetitorAvatarStack competitors={competitors} loading={competitorsLoading} errorMessage={competitorsError} />
+          </div>
+
+          <div className="mt-4 flex items-start justify-between flex-wrap">
+            <h1 className="text-2xl font-semibold text-slate-900">Business Profile</h1>
+
+            {latestBusinessProfile && !showWorkflowUI ? (
+              <button
+                type="button"
+                onClick={recreateFromLatest}
+                disabled={isSubmitting || isSavingBusinessProfile}
+                className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 underline decoration-dashed underline-offset-4 text-sm font-semibold decoration-gray-400 hover:decoration-gray-500 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {isSubmitting ? 'Re-creating…' : 'Re-create business profile'}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="mt-5">
+          {isLoadingLatestBusinessProfile && !showWorkflowUI ? (
+            <div className="flex flex-col items-center justify-center py-10 text-sm text-slate-500">
+              Loading latest business profile…
+            </div>
+          ) : latestBusinessProfile && !showWorkflowUI ? (
+            <div className="space-y-5">
               {latestMessages.length > 0 ? (
                 <SavedProfileCard title="Messages">
                   <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap wrap-break-word m-0 max-h-40 overflow-auto">
@@ -1478,7 +1480,7 @@ export function BusinessProfile() {
                 </SavedProfileCard>
               ) : null}
 
-              {latestCompanyInfo && typeof latestCompanyInfo === 'object' ? (
+              {/* {latestCompanyInfo && typeof latestCompanyInfo === 'object' ? (
                 <SavedProfileCard title="Company overview">
                   <ProfileKVRow label="Brand" value={latestCompanyInfo.brand} />
                   <ProfileKVRow label="Domain" value={latestCompanyInfo.domain} />
@@ -1489,57 +1491,69 @@ export function BusinessProfile() {
                   <ProfileKVRow label="Key keywords" value={latestCompanyInfo.key_keywords} />
                   <ProfileStringList label="Known competitors" items={latestCompanyInfo.known_competitors} />
                 </SavedProfileCard>
-              ) : null}
+              ) : null} */}
 
-              {latestCompanyIdentity && typeof latestCompanyIdentity === 'object' ? (
-                <SavedProfileCard title="Company identity">
-                  <ProfileKVRow label="Type" value={latestCompanyIdentity.type} />
-                  <ProfileKVRow label="Legal name" value={latestCompanyIdentity.business_legal_name} />
-                  <ProfileKVRow label="Description" value={latestCompanyIdentity.description} />
-                  <ProfileKVRow label="Industry" value={latestCompanyIdentity.industry} />
-                  <ProfileKVRow label="Founded" value={latestCompanyIdentity.founded_year} />
-                  <ProfileKVRow label="Headquarters" value={latestCompanyIdentity.headquarter_location} />
-                  <ProfileKVRow label="Offices" value={latestCompanyIdentity.office_locations} />
-                  <ProfileKVRow label="Employees" value={latestCompanyIdentity.total_employees_working} />
-                  <ProfileKVRow label="Business model" value={latestCompanyIdentity.business_model} />
-                  <ProfileKVRow label="Type of business" value={latestCompanyIdentity.type_of_business} />
-                  <ProfileKVRow label="Core values" value={latestCompanyIdentity.core_values} />
-                </SavedProfileCard>
-              ) : null}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  {latestCompanyIdentity && typeof latestCompanyIdentity === 'object' ? (
+                    <SavedProfileCard title="Company identity">
+                      <ProfileKVRow label="Legal name" value={latestCompanyIdentity.business_legal_name} />
+                      <ProfileKVRow label="Industry" value={latestCompanyIdentity.industry} />
+                      <ProfileKVRow label="Founded" value={latestCompanyIdentity.founded_year} />
+                      <ProfileKVRow label="Headquarters" value={latestCompanyIdentity.headquarter_location} />
+                      <ProfileKVRow label="Offices" value={latestCompanyIdentity.office_locations} />
+                      <ProfileKVRow label="Employees" value={latestCompanyIdentity.total_employees_working} />
+                      <ProfileKVRow label="Business model" value={latestCompanyIdentity.business_model} />
+                      <ProfileKVRow label="Description" value={latestCompanyIdentity.description} />
+                      <ProfileKVRow label="Type of business" value={latestCompanyIdentity.type_of_business} />
+                      <ProfileKVRow label="Core values" value={latestCompanyIdentity.core_values} />
+                    </SavedProfileCard>
+                  ) : null}
+                </div>
+                <div className="space-y-4">
+                  {latestSocialLinks.length > 0 ? (
+                    <SavedProfileCard title="Social presence">
+                      <ul className="list-none m-0 p-0 space-y-3">
+                        {latestSocialLinks.map((s, i) => {
+                          const name = s?.name != null ? String(s.name) : '—'
+                          const link = s?.link != null ? String(s.link).trim() : ''
+                          const count = s?.count
+                          return (
+                            <li key={`${name}-${i}`} className="flex items-center justify-between">
+                              {link ? (
+                                <a
+                                  href={link.startsWith('http') ? link : `https://${link}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-600 hover:text-gray-800 underline decoration-dashed decoration-gray-400 hover:text-color-800 underline-offset-4 break-all inline-block"
+                                >
+                                  {name}
+                                </a>
+                              ) : (
+                                <p className="text-sm font-medium text-slate-900">{name}</p>
+                              )}
+                              {count != null && String(count) !== '' ? (
+                                <div className="text-sm text-slate-500 mt-0.5">
+                                  <span className="font-medium">{formatNumber(count)}</span>
+                                  &nbsp;
+                                  {name === 'LinkedIn' && <span>connections</span>}
+                                  {name === 'Twitter' || name === 'X' && <span>followers</span>}
+                                  {name === 'Youtube' && <span>subscribers</span>}
+                                  {name === 'Instagram' && <span>followers</span>}
+                                  {name === 'Facebook' && <span>followers</span>}
 
-              {latestSocialLinks.length > 0 ? (
-                <SavedProfileCard title="Digital presence">
-                  <ul className="list-none m-0 p-0 space-y-3">
-                    {latestSocialLinks.map((s, i) => {
-                      const name = s?.name != null ? String(s.name) : '—'
-                      const link = s?.link != null ? String(s.link).trim() : ''
-                      const count = s?.count
-                      return (
-                        <li key={`${name}-${i}`} className="text-sm">
-                          <div className="font-medium text-slate-900">{name}</div>
-                          {count != null && String(count) !== '' ? (
-                            <div className="text-xs text-slate-500 mt-0.5">{String(count)}</div>
-                          ) : null}
-                          {link ? (
-                            <a
-                              href={link.startsWith('http') ? link : `https://${link}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline break-all mt-1 inline-block"
-                            >
-                              {link}
-                            </a>
-                          ) : (
-                            <span className="text-slate-400 text-xs">No link</span>
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </SavedProfileCard>
-              ) : null}
+                                </div>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </SavedProfileCard>
+                  ) : null}
+                    <SavedProfileBlogsSection blogsList={latestBlogsList} />
 
-              <SavedProfileBlogsSection blogsList={latestBlogsList} />
+                </div>
+              </div>
 
               {latestStepLogs.length > 0 ? (
                 <SavedProfileCard title="Step logs">
@@ -1549,36 +1563,9 @@ export function BusinessProfile() {
                 </SavedProfileCard>
               ) : null}
             </div>
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-4 min-w-0">
-                  <img
-                    src={activeLogoUrl}
-                    alt={`${activeCompanyName || 'company'} logo`}
-                    className="w-12 h-12 rounded-lg object-cover shrink-0 bg-slate-100 border border-slate-200"
-                  />
-                  <div className="min-w-0">
-                    <h1 className="text-xl font-semibold text-slate-800 truncate">{activeCompanyName || '—'}</h1>
-                    {activeWebsiteDisplay ? (
-                      <a
-                        href={activeWebsiteHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-slate-500 hover:text-slate-700 truncate block"
-                      >
-                        {activeWebsiteDisplay}
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-                <h1 className="mt-2 text-2xl font-semibold text-slate-900">Business Profile</h1>
-              </div>
-
-              <div className="flex flex-col items-end gap-2">
-                <CompetitorAvatarStack competitors={competitors} loading={competitorsLoading} errorMessage={competitorsError} />
+          ) : (
+            <div>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
@@ -1606,56 +1593,56 @@ export function BusinessProfile() {
                   </button>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-5">
-              <WorkflowAgentPipeline
-                phase={workflowViz.phase}
-                runId={workflowViz.runId}
-                input={workflowViz.input}
-                agents={workflowViz.agents}
-                orchestratorStream={workflowViz.orchestratorStream}
-                onOpenStream={setModalStep}
-                onExpandBrowser={setBrowserExpandAgentRunId}
-              />
-            </div>
-
-            {workflowViz.phase === 'completed' ? (
-              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                {showSaveActions ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={saveBusinessProfile}
-                      disabled={isSavingBusinessProfile || !completedBusinessProfilePayload}
-                      className="rounded-lg bg-emerald-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      title={completedBusinessProfileRunId ? `Run: ${completedBusinessProfileRunId}` : undefined}
-                    >
-                      {isSavingBusinessProfile ? 'Saving…' : 'Save Business Profile'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelSaveActions}
-                      disabled={isSavingBusinessProfile}
-                      className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowSaveActions(true)}
-                    disabled={!completedBusinessProfilePayload || isSavingBusinessProfile}
-                    className="text-sm text-blue-700 hover:text-blue-800 underline underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Click here to save
-                  </button>
-                )}
+              <div className="mt-5">
+                <WorkflowAgentPipeline
+                  phase={workflowViz.phase}
+                  runId={workflowViz.runId}
+                  input={workflowViz.input}
+                  agents={workflowViz.agents}
+                  orchestratorStream={workflowViz.orchestratorStream}
+                  onOpenStream={setModalStep}
+                  onExpandBrowser={setBrowserExpandAgentRunId}
+                />
               </div>
-            ) : null}
-          </div>
-        )}
+
+              {workflowViz.phase === 'completed' ? (
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  {showSaveActions ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={saveBusinessProfile}
+                        disabled={isSavingBusinessProfile || !completedBusinessProfilePayload}
+                        className="rounded-lg bg-emerald-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title={completedBusinessProfileRunId ? `Run: ${completedBusinessProfileRunId}` : undefined}
+                      >
+                        {isSavingBusinessProfile ? 'Saving…' : 'Save Business Profile'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelSaveActions}
+                        disabled={isSavingBusinessProfile}
+                        className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveActions(true)}
+                      disabled={!completedBusinessProfilePayload || isSavingBusinessProfile}
+                      className="text-sm text-blue-700 hover:text-blue-800 underline underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Click here to save
+                    </button>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
       </div>
 
       <SmartModal

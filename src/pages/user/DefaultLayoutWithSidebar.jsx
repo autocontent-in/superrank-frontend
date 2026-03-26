@@ -62,6 +62,7 @@ const sidebarNav = [
       { to: '/tinyfish-test', label: 'TinyFish Test', icon: Fish },
       { to: '/multiple-tinyfish-test', label: 'Multiple TinyFish Test', icon: Layers2 },
       { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
+      { to: '/seo-services', label: 'SEO Services', icon: LifeBuoy },
       { to: '/multi-agent-test', label: 'multi agent test', icon: Sparkles },
       ...(isDev ? [{ to: '/ai', label: 'AI', icon: Sparkles }] : []),
     ],
@@ -929,17 +930,6 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
               </p>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => setCreateModalOpen(true)}
-            title={collapsed ? 'Create new' : undefined}
-            className={`flex w-full justify-center space-x-2 rounded-md text-sm font-semibold bg-linear-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transition-colors mb-2 cursor-pointer ${collapsed ? 'px-0 py-2.5' : 'px-3 py-3'
-              }`}
-          >
-            <Plus className="w-5 h-5" strokeWidth={2.5} />
-            {!collapsed && <span>New</span>}
-          </button>
 
           <hr className="my-0 py-0 border-0 border-t border-gray-200 mb-4 -mx-1" />
 

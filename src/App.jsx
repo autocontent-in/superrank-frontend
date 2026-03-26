@@ -15,6 +15,7 @@ import { Ai } from './pages/user/Ai'
 import TinyFishAnalyze from './pages/user/TinyFishAnalyze'
 import MultipleTinyFishTest from './pages/user/MultipleTinyFishTest'
 import { BusinessProfile } from './pages/user/BusinessProfile'
+import { SeoServices } from './pages/user/SeoServices'
 import { FriendlinessAndResponsiveness } from './pages/user/FriendlinessAndResponsiveness'
 import { MultiAgentTest } from './pages/user/MultiAgentTest'
 import {
@@ -46,6 +47,7 @@ const allRoutes = [
           { path: 'tinyfish-test', element: <TinyFishAnalyze /> },
           { path: 'multiple-tinyfish-test', element: <MultipleTinyFishTest /> },
           { path: 'business-profile', element: <BusinessProfile /> },
+          { path: 'seo-services', element: <SeoServices /> },
           { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
           { path: 'multi-agent-test', element: <MultiAgentTest /> },
           { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Ai /> : <Navigate to="/" replace /> },
