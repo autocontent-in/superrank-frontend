@@ -16,6 +16,10 @@ import TinyFishAnalyze from './pages/user/TinyFishAnalyze'
 import MultipleTinyFishTest from './pages/user/MultipleTinyFishTest'
 import { BusinessProfile } from './pages/user/BusinessProfile'
 import { SeoServices } from './pages/user/SeoServices'
+import { SEOServices } from './pages/user/SEOServices/SEOServices'
+import { Blogs } from './pages/user/SEOServices/Blogs'
+import { NewBlog } from './pages/user/SEOServices/NewBlog'
+import { Blog } from './pages/user/SEOServices/Blog'
 import { FriendlinessAndResponsiveness } from './pages/user/FriendlinessAndResponsiveness'
 import { MultiAgentTest } from './pages/user/MultiAgentTest'
 import {
@@ -47,7 +51,16 @@ const allRoutes = [
           { path: 'tinyfish-test', element: <TinyFishAnalyze /> },
           { path: 'multiple-tinyfish-test', element: <MultipleTinyFishTest /> },
           { path: 'business-profile', element: <BusinessProfile /> },
-          { path: 'seo-services', element: <SeoServices /> },
+          {
+            path: 'seo-services',
+            element: <SEOServices />,
+            children: [
+              { index: true, element: <SeoServices /> },
+              { path: 'blogs/new', element: <NewBlog /> },
+              { path: 'blogs', element: <Blogs /> },
+              { path: 'blog', element: <Blog /> },
+            ],
+          },
           { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
           { path: 'multi-agent-test', element: <MultiAgentTest /> },
           { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Ai /> : <Navigate to="/" replace /> },

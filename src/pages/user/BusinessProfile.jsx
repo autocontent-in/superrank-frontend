@@ -1480,7 +1480,7 @@ export function BusinessProfile() {
                 </SavedProfileCard>
               ) : null}
 
-              {/* {latestCompanyInfo && typeof latestCompanyInfo === 'object' ? (
+              {latestCompanyInfo && typeof latestCompanyInfo === 'object' ? (
                 <SavedProfileCard title="Company overview">
                   <ProfileKVRow label="Brand" value={latestCompanyInfo.brand} />
                   <ProfileKVRow label="Domain" value={latestCompanyInfo.domain} />
@@ -1491,7 +1491,7 @@ export function BusinessProfile() {
                   <ProfileKVRow label="Key keywords" value={latestCompanyInfo.key_keywords} />
                   <ProfileStringList label="Known competitors" items={latestCompanyInfo.known_competitors} />
                 </SavedProfileCard>
-              ) : null} */}
+              ) : null}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
