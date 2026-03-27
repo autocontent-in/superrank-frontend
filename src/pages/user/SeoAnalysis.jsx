@@ -1,6 +1,7 @@
 import { useState, useMemo, Fragment, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheck, CircleX, Cross, Info, Minus, RefreshCcw, Search, TriangleAlert, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheck, CircleX, Cross, House, Info, Minus, RefreshCcw, Search, TriangleAlert, X } from 'lucide-react'
 import AiApi from '../../api/AiApi'
 import Api from '../../api/api.jsx'
 
@@ -1611,8 +1612,22 @@ export function SeoAnalysis() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-12 sm:pt-6 sm:pb-16 w-full min-h-full overflow-y-auto">
-      <div className="mx-auto max-w-6xl">
+    <div className="w-full min-h-full overflow-y-auto px-4 pb-12 pt-0 sm:pb-16">
+      <div className="sticky top-0 z-20 -mx-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">SEO Analysis</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl pt-6">
         {/* Title + company info + actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4 min-w-0">

@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { House } from 'lucide-react'
 
 export function Blog() {
   const location = useLocation()
@@ -6,18 +7,29 @@ export function Blog() {
 
   return (
     <>
-      <div className="flex items-center gap-2 text-sm">
-        <Link to="/seo-services" className="text-slate-600 hover:text-slate-900 transition-colors">
-          SEO Services
-        </Link>
-        <span className="text-slate-400">{'>'}</span>
-        <Link to="/seo-services/blogs" className="text-slate-600 hover:text-slate-900 transition-colors">
-          Blogs
-        </Link>
-        <span className="text-slate-400">{'>'}</span>
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link to="/seo-services" className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0">
+            SEO Services
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link to="/seo-services/blogs" className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0">
+            Blogs
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800 truncate">Create Blog</span>
+        </div>
       </div>
 
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">Create Blog</h1>
+      <h1 className="text-2xl font-semibold text-slate-900">Create Blog</h1>
 
       {ctx ? (
         <p className="mt-2 text-sm text-slate-600">

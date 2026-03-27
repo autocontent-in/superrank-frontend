@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Globe, X } from 'lucide-react'
+import { Check, Globe, House, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSnackbar } from '../../components/ui/SnackbarProvider'
 import { SmartModal } from '../../components/ui/SmartModal'
@@ -1419,8 +1420,22 @@ export function BusinessProfile() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-12 sm:pt-6 sm:pb-16 w-full min-h-full overflow-y-auto">
-      <div className="mx-auto max-w-6xl">
+    <div className="w-full min-h-full overflow-y-auto px-4 pb-12 pt-0 sm:pb-16">
+      <div className="sticky top-0 z-20 -mx-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">Business Profile</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl pt-6">
         {/* Header (always visible) */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4 min-w-0">

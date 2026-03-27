@@ -860,7 +860,7 @@ export function NewBlog() {
   return (
     <>
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <header className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center sm:px-6">
+        <header className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center sm:px-4">
           <div className="flex items-center h-9 min-w-0 gap-1.5">
             <Link
               to="/"

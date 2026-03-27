@@ -1,19 +1,28 @@
 import { Link } from 'react-router-dom'
+import { House } from 'lucide-react'
 
 export function Blogs() {
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm">
-            <Link to="/seo-services" className="text-slate-600 transition-colors hover:text-slate-900">
-              SEO Services
-            </Link>
-            <span className="text-slate-400">{'>'}</span>
-          </div>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-900">Blogs</h1>
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link to="/seo-services" className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0">
+            SEO Services
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">Blogs</span>
         </div>
+      </div>
 
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <Link
           to="/seo-services/blogs/new"
           className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"

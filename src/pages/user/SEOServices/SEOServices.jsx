@@ -199,6 +199,10 @@ export function SEOServices() {
   const [competitorsLoading, setCompetitorsLoading] = useState(false)
   const [competitorsError, setCompetitorsError] = useState(null)
   const isCreateBlogRoute = location.pathname === '/seo-services/blogs/new'
+  const isSeoServicesHomeRoute = location.pathname === '/seo-services'
+  const isBlogsRoute = location.pathname === '/seo-services/blogs'
+  const isBlogRoute = location.pathname === '/seo-services/blog'
+  const isFullWidthSeoChildRoute = isCreateBlogRoute || isSeoServicesHomeRoute || isBlogsRoute || isBlogRoute
 
   useEffect(() => {
     let cancelled = false
@@ -232,10 +236,16 @@ export function SEOServices() {
 
   return (
     <div
-      className={`w-full min-h-full ${isCreateBlogRoute ? 'overflow-hidden px-0 py-0' : 'overflow-y-auto px-4 pt-6 pb-12 sm:pt-6 sm:pb-16'}`}
+      className={`w-full min-h-full ${
+        isCreateBlogRoute
+          ? 'overflow-hidden px-0 py-0'
+          : isFullWidthSeoChildRoute
+            ? 'overflow-y-auto px-4 pb-12 sm:pb-16 pt-0'
+            : 'overflow-y-auto px-4 pt-6 pb-12 sm:pt-6 sm:pb-16'
+      }`}
     >
-      <div className={isCreateBlogRoute ? 'h-full w-full' : 'mx-auto max-w-6xl'}>
-        {!isCreateBlogRoute ? (
+      <div className={isFullWidthSeoChildRoute ? 'h-full w-full' : 'mx-auto max-w-6xl'}>
+        {!isFullWidthSeoChildRoute ? (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
               <img

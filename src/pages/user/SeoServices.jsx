@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { House } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api.jsx'
 
@@ -52,11 +53,21 @@ export function SeoServices() {
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 flex-wrap mt-4">
-        <h1 className="text-2xl font-semibold text-slate-900">SEO Services</h1>
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">SEO Services</span>
+        </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-1">
         {loadingLatest ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
             Loading…
