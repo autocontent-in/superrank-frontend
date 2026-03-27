@@ -20,7 +20,6 @@ import {
   LogOut,
   Sparkles,
   Bot,
-  Network,
   BotMessageSquare,
   BookOpen,
   LifeBuoy,
@@ -56,16 +55,15 @@ const sidebarNav = [
     items: [
       { to: '/', label: 'Home', icon: House, end: true },
       { to: '/website-audit', label: 'Website Audit', icon: BarChart2 },
+      { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
+      { to: '/seo-services', label: 'SEO Services', icon: LifeBuoy },
+      { to: '/web-agent', label: 'Web Agents', icon: Bot },
+      { to: '/ai-team', label: 'AI Team', icon: BotMessageSquare },
+      ...(isDev ? [{ to: '/ai-demo', label: 'AI Demo', icon: Sparkles }] : []),
       { to: '/friendliness-and-responsiveness', label: 'Friendliness and Responsiveness', icon: MonitorSmartphone },
       { to: '/all-files', label: 'All Files', icon: LayoutList },
       { to: '/groups', label: 'Groups', icon: FolderOpen },
       { to: '/documents', label: 'Documents', icon: FileText },
-      { to: '/web-agent', label: 'Web Agent', icon: Bot },
-      { to: '/multi-web-agents', label: 'Multi Web Agents', icon: Network },
-      { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
-      { to: '/seo-services', label: 'SEO Services', icon: LifeBuoy },
-      { to: '/ai-team', label: 'AI Team', icon: BotMessageSquare },
-      ...(isDev ? [{ to: '/ai-demo', label: 'AI Demo', icon: Sparkles }] : []),
     ],
   },
   // {
@@ -627,6 +625,8 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
   const [companiesError, setCompaniesError] = useState(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState(null)
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false)
+  const [companySwitchPending, setCompanySwitchPending] = useState(null)
+  const [isSwitchingCompany, setIsSwitchingCompany] = useState(false)
   const [companyDropdownFlyoutPosition, setCompanyDropdownFlyoutPosition] = useState(null)
   const companyDropdownRef = useRef(null)
   const companyTriggerRef = useRef(null)
@@ -715,17 +715,42 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
 
   const selectedCompany = companies.find((company) => company.id === selectedCompanyId) || null
 
-  const handleSelectCompany = useCallback(async (id) => {
-    setSelectedCompanyId(id)
-    setIsCompanyDropdownOpen(false)
+  const handleCompanyPick = useCallback(
+    (id) => {
+      if (id === selectedCompanyId) {
+        setIsCompanyDropdownOpen(false)
+        return
+      }
+      const company = companies.find((c) => c.id === id)
+      setCompanySwitchPending({
+        id,
+        name: company?.name ?? 'Untitled company',
+      })
+      setIsCompanyDropdownOpen(false)
+    },
+    [selectedCompanyId, companies],
+  )
+
+  const confirmCompanySwitch = useCallback(async () => {
+    if (!companySwitchPending) return
+    const { id } = companySwitchPending
+    setIsSwitchingCompany(true)
     try {
       await Api.post('/switch-company', { data: { company_id: id } })
       await refreshUser()
+      window.location.reload()
     } catch (err) {
       const message = err.response?.data?.message ?? 'Failed to switch company.'
       showSnackbar({ message, variant: 'error', duration: 4000 })
+      setIsSwitchingCompany(false)
+      setCompanySwitchPending(null)
     }
-  }, [showSnackbar, refreshUser])
+  }, [companySwitchPending, showSnackbar, refreshUser])
+
+  const cancelCompanySwitch = useCallback(() => {
+    if (isSwitchingCompany) return
+    setCompanySwitchPending(null)
+  }, [isSwitchingCompany])
 
   const handleCreateBlankPage = useCallback(async () => {
     if (isCreating) return
@@ -893,7 +918,7 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
                   companies={companies}
                   companiesLoading={companiesLoading}
                   selectedCompanyId={selectedCompanyId}
-                  onSelectCompany={handleSelectCompany}
+                  onSelectCompany={handleCompanyPick}
                   onClose={() => setIsCompanyDropdownOpen(false)}
                   onAddCompany={() => {
                     setIsCompanyDropdownOpen(false)
@@ -915,7 +940,7 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
                   companies={companies}
                   companiesLoading={companiesLoading}
                   selectedCompanyId={selectedCompanyId}
-                  onSelectCompany={handleSelectCompany}
+                  onSelectCompany={handleCompanyPick}
                   onClose={() => setIsCompanyDropdownOpen(false)}
                   onAddCompany={() => {
                     setIsCompanyDropdownOpen(false)
@@ -1083,6 +1108,47 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      </SmartModal>
+
+      <SmartModal
+        open={companySwitchPending != null}
+        onClose={cancelCompanySwitch}
+        size="sm"
+        animation="top"
+        closeOnBackdrop={!isSwitchingCompany}
+        closeOnEscape={!isSwitchingCompany}
+        staticBackdrop={isSwitchingCompany}
+        showHeader={false}
+        showFooter={false}
+        radius="xl"
+        backdropBlur="xs"
+      >
+        <div className="px-5 py-4">
+          <p className="text-base text-slate-700">
+            Switch to{' '}
+            <span className="font-semibold text-slate-900">{companySwitchPending?.name} ?</span>
+          </p>
+
+          <p className="mt-4 mb-2 text-sm text-slate-600">Just a confirmation layer to avoid mistakenly switching to a company</p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={cancelCompanySwitch}
+              disabled={isSwitchingCompany}
+              className="px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmCompanySwitch}
+              disabled={isSwitchingCompany}
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSwitchingCompany ? 'Switching…' : 'Confirm'}
+            </button>
           </div>
         </div>
       </SmartModal>
@@ -1847,6 +1913,75 @@ function SeoServicesRouteNavbar() {
   return null
 }
 
+/** Web Agents / Multi Web Agents: crumbs + tabs. AI Team: breadcrumb only (no search, no tabs). */
+function AiAgentsNavbar() {
+  const { pathname } = useLocation()
+  const allTabs = [
+    { to: '/web-agent', label: 'Web Agents' },
+    { to: '/multi-web-agents', label: 'Multi Web Agents' },
+    { to: '/ai-team', label: 'AI Team' },
+  ]
+  const tabs = allTabs.filter((t) => t.to !== '/ai-team')
+  const current = allTabs.find((t) => t.to === pathname)
+
+  if (pathname === '/ai-team') {
+    return (
+      <div className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center bg-white">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800 truncate">AI Team</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center justify-between gap-4">
+      <div className="flex items-center h-9 min-w-0 gap-1.5">
+        <Link
+          to="/"
+          className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+          title="Home"
+        >
+          <House className="w-4 h-4" />
+        </Link>
+        <span className="text-slate-400">/</span>
+        <span className="text-sm font-semibold text-slate-800 truncate">
+          {current?.label ?? 'AI agents'}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 min-w-0 flex-1 justify-end">
+        <nav
+          className="flex flex-wrap items-center justify-end gap-1 sm:gap-0.5 shrink-0"
+          aria-label="AI agent tools"
+        >
+          {tabs.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `px-2.5 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap shrink-0 ${isActive
+                  ? 'font-semibold text-slate-800 bg-slate-100'
+                  : 'font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-50'
+                }`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+    </div>
+  )
+}
+
 /**
  * Layout with fixed left sidebar + dynamic main content on the right.
  * Sidebar can be expanded (260px) or contracted (64px, icons only).
@@ -1906,6 +2041,9 @@ export function DefaultLayoutWithSidebar() {
           <SimpleBreadcrumbNavbar title="Business Profile" />
         )}
         {location.pathname.startsWith('/seo-services') && <SeoServicesRouteNavbar />}
+        {(location.pathname === '/web-agent' ||
+          location.pathname === '/multi-web-agents' ||
+          location.pathname === '/ai-team') && <AiAgentsNavbar />}
         <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
           <Outlet />
         </div>

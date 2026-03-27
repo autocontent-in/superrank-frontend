@@ -58,7 +58,7 @@ export function AiDemo() {
 
   return (
     <div className="w-full min-h-full overflow-y-auto">
-      <div className="sticky top-0 z-20 flex h-14 shrink-0 items-center border-b border-slate-200 bg-white px-6">
+      <div className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center bg-white">
         <div className="flex h-9 min-w-0 items-center gap-1.5">
           <Link
             to="/"
