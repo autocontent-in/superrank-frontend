@@ -55,7 +55,7 @@ const sidebarNav = [
     label: '',
     items: [
       { to: '/', label: 'Home', icon: House, end: true },
-      { to: '/seo-analysis', label: 'SEO Analysis', icon: BarChart2 },
+      { to: '/website-audit', label: 'Website Audit', icon: BarChart2 },
       { to: '/friendliness-and-responsiveness', label: 'Friendliness and Responsiveness', icon: MonitorSmartphone },
       { to: '/all-files', label: 'All Files', icon: LayoutList },
       { to: '/groups', label: 'Groups', icon: FolderOpen },

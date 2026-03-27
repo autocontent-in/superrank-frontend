@@ -5,7 +5,7 @@ import { DefaultLayoutWithSidebar } from './pages/user/DefaultLayoutWithSidebar'
 import { Onboarding } from './pages/Onboarding'
 import { AddNewCompany } from './pages/user/AddNewCompany'
 import { Home } from './pages/user/Home'
-import { SeoAnalysis } from './pages/user/SeoAnalysis'
+import { WebsiteAudit } from './pages/user/WebsiteAudit'
 import { Document } from './pages/user/Document'
 import { Documents } from './pages/user/Documents'
 import { Groups } from './pages/user/Groups'
@@ -45,7 +45,8 @@ const allRoutes = [
         children: [
           { index: true, element: <Home /> },
           { path: 'home', element: <Home /> },
-          { path: 'seo-analysis', element: <SeoAnalysis /> },
+          { path: 'website-audit', element: <WebsiteAudit /> },
+          { path: 'seo-analysis', element: <Navigate to="/website-audit" replace /> },
           { path: 'all-files', element: <AllFiles /> },
           { path: 'documents', element: <Documents /> },
           { path: 'tinyfish-test', element: <Navigate to="/web-agent" replace /> },

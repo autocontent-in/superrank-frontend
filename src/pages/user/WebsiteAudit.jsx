@@ -1293,7 +1293,7 @@ function AuditDashboard({ data, technicalAuditCta }) {
       <div className="mb-4">
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-semibold text-slate-900">SEO Audit</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Website Audit</h1>
             <p className="text-sm tracking-wide text-slate-500">
               {new Date(data.audited_at).toLocaleString('en-US', {
                 month: 'short',
@@ -1523,7 +1523,7 @@ function technicalAuditFromLatestApiResponse(res) {
   return null
 }
 
-export function SeoAnalysis() {
+export function WebsiteAudit() {
   const { user } = useAuth()
   const company = user?.default_company
   const companyId = company?.id ?? company?.uuid
@@ -1623,7 +1623,7 @@ export function SeoAnalysis() {
             <House className="w-4 h-4" />
           </Link>
           <span className="text-slate-400">/</span>
-          <span className="text-sm font-semibold text-slate-800">SEO Analysis</span>
+          <span className="text-sm font-semibold text-slate-800">Website Audit</span>
         </div>
       </div>
 

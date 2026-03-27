@@ -72,7 +72,7 @@ export function Home() {
       const { data } = await AiApi.post('/api/v1/seo-audit', { data: { domain: domain.trim() } })
       Api.post('/seo-audit/store', { data: { response: data } }).catch(() => {})
       updateSnackbar(toastId, { message: 'SEO audit completed.', variant: 'success', loading: false, duration: 3000 })
-      navigate('/seo-analysis')
+      navigate('/website-audit')
     } catch (err) {
       const message = err.response?.data?.detail?.message ?? err.response?.data?.message ?? 'SEO audit failed.'
       updateSnackbar(toastId, { message, variant: 'error', loading: false, duration: 4000 })
