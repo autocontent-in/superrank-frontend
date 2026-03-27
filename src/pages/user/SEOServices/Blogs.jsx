@@ -4,7 +4,7 @@ import { House } from 'lucide-react'
 export function Blogs() {
   return (
     <>
-      <div className="sticky top-0 z-20 -mx-4 mb-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-20 mb-4 flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white">
         <div className="flex items-center h-9 min-w-0 gap-1.5">
           <Link
             to="/"
@@ -20,9 +20,6 @@ export function Blogs() {
           <span className="text-slate-400">/</span>
           <span className="text-sm font-semibold text-slate-800">Blogs</span>
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-start justify-between gap-4">
         <Link
           to="/seo-services/blogs/new"
           className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"

@@ -236,12 +236,12 @@ export function SEOServices() {
 
   return (
     <div
-      className={`w-full min-h-full ${
+      className={`w-full min-h-full min-w-0 ${
         isCreateBlogRoute
           ? 'overflow-hidden px-0 py-0'
           : isFullWidthSeoChildRoute
-            ? 'overflow-y-auto px-4 pb-12 sm:pb-16 pt-0'
-            : 'overflow-y-auto px-4 pt-6 pb-12 sm:pt-6 sm:pb-16'
+            ? 'overflow-x-hidden overflow-y-auto px-4 pb-12 pt-0 sm:pb-16'
+            : 'overflow-x-hidden overflow-y-auto px-4 pt-6 pb-12 sm:pt-6 sm:pb-16'
       }`}
     >
       <div className={isFullWidthSeoChildRoute ? 'h-full w-full' : 'mx-auto max-w-6xl'}>

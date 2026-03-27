@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { House } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { SmartModal } from '../../components/ui/SmartModal'
 
@@ -227,8 +229,22 @@ export function MultiAgentTest() {
 
   return (
     <div className="w-full min-h-full overflow-y-auto">
-      <div className="p-6 max-w-3xl mx-auto">
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">AI Multi-Agent Collaboration</h2>
+      <div className="sticky top-0 z-20 flex h-14 shrink-0 items-center border-b border-slate-200 bg-white px-6">
+        <div className="flex h-9 min-w-0 items-center gap-1.5">
+          <Link
+            to="/"
+            className="flex shrink-0 items-center text-slate-500 transition-colors hover:text-slate-800"
+            title="Home"
+          >
+            <House className="h-4 w-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">AI Team</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-3xl p-6">
+        <h2 className="mb-1 text-xl font-semibold text-slate-900">AI Team - Multi agents collaboration</h2>
         <p className="text-sm text-slate-600 mb-6">
           Runs your orchestration endpoint and appends streamed events as they arrive.
         </p>

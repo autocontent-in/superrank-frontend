@@ -1420,8 +1420,8 @@ export function BusinessProfile() {
   }
 
   return (
-    <div className="w-full min-h-full overflow-y-auto px-4 pb-12 pt-0 sm:pb-16">
-      <div className="sticky top-0 z-20 -mx-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+    <div className="w-full min-h-full overflow-x-hidden overflow-y-auto px-4 pb-12 pt-0 sm:pb-16">
+      <div className="sticky top-0 z-20 flex h-14 w-full min-w-0 shrink-0 items-center border-b border-slate-200 bg-white">
         <div className="flex items-center h-9 min-w-0 gap-1.5">
           <Link
             to="/"

@@ -5,15 +5,20 @@ import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api.jsx'
 
 function ServiceCard({ title, description, onClick }) {
+  const titleClassName =
+    'cursor-pointer self-start text-left text-base font-semibold text-slate-900 underline decoration-dashed underline-offset-4 decoration-slate-300 transition-colors hover:text-slate-700 hover:decoration-slate-400'
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full text-left rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-[box-shadow,border-color] cursor-pointer"
-    >
-      <div className="text-base font-semibold text-slate-900">{title}</div>
+    <div className="flex h-full w-full flex-col rounded-lg border border-slate-200 bg-white p-5 text-left">
+      {onClick ? (
+        <button type="button" onClick={onClick} className={titleClassName}>
+          {title}
+        </button>
+      ) : (
+        <div className={titleClassName}>{title}</div>
+      )}
       <div className="mt-1 text-sm text-slate-600 leading-relaxed">{description}</div>
-    </button>
+    </div>
   )
 }
 
@@ -53,7 +58,7 @@ export function SeoServices() {
 
   return (
     <>
-      <div className="sticky top-0 z-20 -mx-4 mb-4 flex h-14 items-center border-b border-slate-200 bg-white px-4 sm:-mx-6 sm:px-6">
+      <div className="sticky top-0 z-20 mb-4 flex h-14 w-full min-w-0 shrink-0 items-center border-b border-slate-200 bg-white">
         <div className="flex items-center h-9 min-w-0 gap-1.5">
           <Link
             to="/"
@@ -67,7 +72,7 @@ export function SeoServices() {
         </div>
       </div>
 
-      <div className="mt-1">
+      <div className="mx-auto mt-1 w-full max-w-7xl">
         {loadingLatest ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
             Loading…
@@ -77,7 +82,7 @@ export function SeoServices() {
             Create a business profile to unlock SEO services.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
             <ServiceCard
               title="Blogs"
               description="Write a well reserached blog with trending topic, rank on search engines for your niche"

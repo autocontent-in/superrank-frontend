@@ -11,9 +11,9 @@ import { Documents } from './pages/user/Documents'
 import { Groups } from './pages/user/Groups'
 import { Group } from './pages/user/Group'
 import { AllFiles } from './pages/user/AllFiles'
-import { Ai } from './pages/user/Ai'
-import TinyFishAnalyze from './pages/user/TinyFishAnalyze'
-import MultipleTinyFishTest from './pages/user/MultipleTinyFishTest'
+import { AiDemo } from './pages/user/AiDemo'
+import WebAgent from './pages/user/WebAgent'
+import MultiWebAgents from './pages/user/MultiWebAgents'
 import { BusinessProfile } from './pages/user/BusinessProfile'
 import { SeoServices } from './pages/user/SeoServices'
 import { SEOServices } from './pages/user/SEOServices/SEOServices'
@@ -21,7 +21,7 @@ import { Blogs } from './pages/user/SEOServices/Blogs'
 import { NewBlog } from './pages/user/SEOServices/NewBlog'
 import { Blog } from './pages/user/SEOServices/Blog'
 import { FriendlinessAndResponsiveness } from './pages/user/FriendlinessAndResponsiveness'
-import { MultiAgentTest } from './pages/user/MultiAgentTest'
+import { AITeam } from './pages/user/AITeam'
 import {
   Account,
   AccountProfilePage,
@@ -48,8 +48,10 @@ const allRoutes = [
           { path: 'seo-analysis', element: <SeoAnalysis /> },
           { path: 'all-files', element: <AllFiles /> },
           { path: 'documents', element: <Documents /> },
-          { path: 'tinyfish-test', element: <TinyFishAnalyze /> },
-          { path: 'multiple-tinyfish-test', element: <MultipleTinyFishTest /> },
+          { path: 'tinyfish-test', element: <Navigate to="/web-agent" replace /> },
+          { path: 'multiple-tinyfish-test', element: <Navigate to="/multi-web-agents" replace /> },
+          { path: 'web-agent', element: <WebAgent /> },
+          { path: 'multi-web-agents', element: <MultiWebAgents /> },
           { path: 'business-profile', element: <BusinessProfile /> },
           {
             path: 'seo-services',
@@ -62,8 +64,11 @@ const allRoutes = [
             ],
           },
           { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
-          { path: 'multi-agent-test', element: <MultiAgentTest /> },
-          { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Ai /> : <Navigate to="/" replace /> },
+          { path: 'multi-agent-test', element: <Navigate to="/ai-team" replace /> },
+          { path: 'conversational-ai-team', element: <Navigate to="/ai-team" replace /> },
+          { path: 'ai-team', element: <AITeam /> },
+          { path: 'ai-demo', element: import.meta.env.VITE_APP_ENV === 'dev' ? <AiDemo /> : <Navigate to="/" replace /> },
+          { path: 'ai', element: import.meta.env.VITE_APP_ENV === 'dev' ? <Navigate to="/ai-demo" replace /> : <Navigate to="/" replace /> },
           { path: 'groups', element: <Groups /> },
           { path: 'groups/:id', element: <Group /> },
           { path: 'account', element: <Navigate to="/settings/account/profile" replace /> },

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { House } from 'lucide-react'
 
 function tryParseJsonLine(line) {
   let s = line.trim()
@@ -322,6 +324,20 @@ export default function MultipleTinyFishTest() {
 
   return (
     <div className="w-full h-full min-h-0 flex-1 flex flex-col bg-white">
+      <div className="sticky top-0 z-20 flex h-14 items-center border-b border-slate-200 bg-white px-6">
+        <div className="flex items-center h-9 min-w-0 gap-1.5">
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">Multi Web Agents</span>
+        </div>
+      </div>
+
       <div className="p-4 border-b border-slate-200 bg-white flex items-center shrink-0">
         <button
           className="mr-2 rounded-lg bg-slate-900 border border-slate-700 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
