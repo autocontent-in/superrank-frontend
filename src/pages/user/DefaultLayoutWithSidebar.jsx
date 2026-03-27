@@ -1704,6 +1704,149 @@ function GroupsNavbar() {
   )
 }
 
+/** Full-width top bar for simple Home / Title routes (matches All Files chrome). */
+function SimpleBreadcrumbNavbar({ title }) {
+  return (
+    <div className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center bg-white">
+      <div className="flex items-center h-9 min-w-0 gap-1.5">
+        <Link
+          to="/"
+          className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+          title="Home"
+        >
+          <House className="w-4 h-4" />
+        </Link>
+        <span className="text-slate-400">/</span>
+        <span className="text-sm font-semibold text-slate-800">{title}</span>
+      </div>
+    </div>
+  )
+}
+
+/** SEO Services and nested routes — single top chrome aligned with the rest of the app. */
+function SeoServicesRouteNavbar() {
+  const { pathname } = useLocation()
+
+  const bar =
+    'shrink-0 h-14 px-4 border-b border-slate-200 flex items-center gap-4 bg-white'
+  const crumbs = 'flex items-center h-9 min-w-0 gap-1.5 flex-1'
+
+  if (pathname === '/seo-services') {
+    return (
+      <div className={bar}>
+        <div className={crumbs}>
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">SEO Services</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (pathname === '/seo-services/blogs') {
+    return (
+      <div className={`${bar} justify-between`}>
+        <div className={crumbs}>
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link
+            to="/seo-services"
+            className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
+          >
+            SEO Services
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800">Blogs</span>
+        </div>
+        <Link
+          to="/seo-services/blogs/new"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+        >
+          + Create
+        </Link>
+      </div>
+    )
+  }
+
+  if (pathname === '/seo-services/blog') {
+    return (
+      <div className={bar}>
+        <div className={crumbs}>
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link
+            to="/seo-services"
+            className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
+          >
+            SEO Services
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link
+            to="/seo-services/blogs"
+            className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
+          >
+            Blogs
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800 truncate">Create Blog</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (pathname === '/seo-services/blogs/new') {
+    return (
+      <div className={bar}>
+        <div className={crumbs}>
+          <Link
+            to="/"
+            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
+            title="Home"
+          >
+            <House className="w-4 h-4" />
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link
+            to="/seo-services"
+            className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
+          >
+            SEO Services
+          </Link>
+          <span className="text-slate-400">/</span>
+          <Link
+            to="/seo-services/blogs"
+            className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
+          >
+            Blogs
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-sm font-semibold text-slate-800 truncate">Create new</span>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
 /**
  * Layout with fixed left sidebar + dynamic main content on the right.
  * Sidebar can be expanded (260px) or contracted (64px, icons only).
@@ -1756,6 +1899,13 @@ export function DefaultLayoutWithSidebar() {
         {location.pathname === '/all-files' && <AllFilesNavbar />}
         {location.pathname === '/documents' && <DocumentsNavbar />}
         {location.pathname.startsWith('/groups') && <GroupsNavbar />}
+        {location.pathname === '/website-audit' && (
+          <SimpleBreadcrumbNavbar title="Website Audit" />
+        )}
+        {location.pathname === '/business-profile' && (
+          <SimpleBreadcrumbNavbar title="Business Profile" />
+        )}
+        {location.pathname.startsWith('/seo-services') && <SeoServicesRouteNavbar />}
         <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
           <Outlet />
         </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Check, ChevronLeft, House, Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Check, ChevronLeft, Pencil } from 'lucide-react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useSnackbar } from '../../../components/ui/SnackbarProvider'
 import Api from '../../../api/api.jsx'
@@ -860,28 +860,6 @@ export function NewBlog() {
   return (
     <>
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
-        <header className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center sm:px-4">
-          <div className="flex items-center h-9 min-w-0 gap-1.5">
-            <Link
-              to="/"
-              className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
-              title="Home"
-            >
-              <House className="w-4 h-4" />
-            </Link>
-            <span className="text-slate-400">/</span>
-            <Link to="/seo-services" className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0">
-              SEO Services
-            </Link>
-            <span className="text-slate-400">/</span>
-            <Link to="/seo-services/blogs" className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0">
-              Blogs
-            </Link>
-            <span className="text-slate-400">/</span>
-            <span className="text-sm font-semibold text-slate-800 truncate">Create new</span>
-          </div>
-        </header>
-
         <div className={`flex min-h-0 flex-1 flex-col ${step > 1 ? 'lg:flex-row' : ''}`}>
           {step > 1 ? (
             <aside className="shrink-0 border-b border-slate-200 bg-white lg:flex lg:h-full lg:w-64 lg:border-b-0 lg:border-r xl:w-72">

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { House } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api.jsx'
 
@@ -57,49 +56,33 @@ export function SeoServices() {
   const hasBusinessProfile = Boolean(latestBusinessProfile)
 
   return (
-    <>
-      <div className="sticky top-0 z-20 mb-4 flex h-14 w-full min-w-0 shrink-0 items-center border-b border-slate-200 bg-white">
-        <div className="flex items-center h-9 min-w-0 gap-1.5">
-          <Link
-            to="/"
-            className="flex items-center text-slate-500 hover:text-slate-800 transition-colors shrink-0"
-            title="Home"
-          >
-            <House className="w-4 h-4" />
-          </Link>
-          <span className="text-slate-400">/</span>
-          <span className="text-sm font-semibold text-slate-800">SEO Services</span>
+    <div className="mx-auto w-full max-w-7xl pt-6">
+      {loadingLatest ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
+          Loading…
         </div>
-      </div>
-
-      <div className="mx-auto mt-1 w-full max-w-7xl">
-        {loadingLatest ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-600">
-            Loading…
-          </div>
-        ) : !hasBusinessProfile ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center text-sm text-slate-600">
-            Create a business profile to unlock SEO services.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ServiceCard
-              title="Blogs"
-              description="Write a well reserached blog with trending topic, rank on search engines for your niche"
-              onClick={() => navigate('/seo-services/blogs')}
-            />
-            <ServiceCard
-              title="Monthly Content Topics"
-              description="Clear the chaos with AI. Get your relevant topics"
-            />
-            <ServiceCard
-              title="Content Refresh"
-              description="Improve search engine performance by updating your stale content and stay relevant without diving into something new"
-            />
-          </div>
-        )}
-      </div>
-    </>
+      ) : !hasBusinessProfile ? (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center text-sm text-slate-600">
+          Create a business profile to unlock SEO services.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ServiceCard
+            title="Blogs"
+            description="Write a well reserached blog with trending topic, rank on search engines for your niche"
+            onClick={() => navigate('/seo-services/blogs')}
+          />
+          <ServiceCard
+            title="Monthly Content Topics"
+            description="Clear the chaos with AI. Get your relevant topics"
+          />
+          <ServiceCard
+            title="Content Refresh"
+            description="Improve search engine performance by updating your stale content and stay relevant without diving into something new"
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
