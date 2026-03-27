@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Heart, Logs, Play, Square } from 'lucide-react'
 
 function tryParseJsonLine(line) {
   let s = line.trim()
@@ -22,6 +23,7 @@ export default function TinyFishAnalyze() {
   const [currentPurpose, setCurrentPurpose] = useState('')
   const [result, setResult] = useState(null)
   const [events, setEvents] = useState([]) // streamed status objects
+  const [isLogsOpen, setIsLogsOpen] = useState(true)
 
   const abortRef = useRef(null)
 
@@ -148,6 +150,68 @@ export default function TinyFishAnalyze() {
     }
   }
 
+  function formatLogTime(ts) {
+    const d = ts ? new Date(ts) : new Date()
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+  }
+
+  function eventToLogLine(evt) {
+    const type = String(evt?.type || 'EVENT').toUpperCase()
+    const ts = evt?.timestamp
+    const t = formatLogTime(ts)
+
+    let message = ''
+    if (type === 'PROGRESS') message = evt?.purpose || ''
+    else if (type === 'STREAMING_URL') message = evt?.streaming_url || evt?.url || ''
+    else if (type === 'STARTED') message = 'Started'
+    else if (type === 'COMPLETE') message = 'Complete'
+    else if (type === 'ERROR') message = `Error: ${evt?.error || ''}`.trim()
+    else message = evt?.message || evt?.detail || evt?.purpose || ''
+
+    const safeMessage = String(message || '').trim()
+    return `[${t}] [${type}] ${safeMessage}`.trimEnd()
+  }
+
+  function eventToPlainMessage(evt) {
+    const type = String(evt?.type || '').toUpperCase()
+    if (type === 'PROGRESS') return String(evt?.purpose || '').trim()
+    if (type === 'COMPLETE') {
+      const completed = evt?.result ?? result
+      if (typeof completed === 'string') return completed.trim()
+      return 'Complete'
+    }
+    return ''
+  }
+
+  const textEvents = events.filter((evt) => {
+    const type = String(evt?.type || '').toUpperCase()
+    return type === 'PROGRESS' || type === 'COMPLETE'
+  })
+
+  const sidebarEvents = events.filter((evt) => {
+    const type = String(evt?.type || '').toUpperCase()
+    return type === 'STARTED' || type === 'HEARTBEAT' || type === 'PROGRESS' || type === 'COMPLETE'
+  })
+
+  function sidebarEventMessage(evt) {
+    const type = String(evt?.type || '').toUpperCase()
+    if (type === 'PROGRESS') return String(evt?.purpose || '').trim()
+    if (type === 'STARTED') return 'Started'
+    if (type === 'HEARTBEAT') return String(evt?.message || evt?.detail || 'Heartbeat').trim()
+    if (type === 'COMPLETE') return eventToPlainMessage(evt) || 'Complete'
+    return ''
+  }
+
+  const latestTextEvent = textEvents.length > 0 ? textEvents[textEvents.length - 1] : null
+  const latestPlainText = latestTextEvent ? eventToPlainMessage(latestTextEvent) : ''
+  const isLive = isRunning || phase === 'starting' || phase === 'progress'
+  const latestType = String(latestTextEvent?.type || '').toUpperCase()
+  const isComplete = latestType === 'COMPLETE'
+  const statusDot = isComplete
+    ? { dot: 'bg-orange-500', ping: 'bg-orange-400' }
+    : { dot: 'bg-green-500', ping: 'bg-green-400' }
+
   const addressBarText =
     streamingUrl ||
     (phase === 'starting' || phase === 'progress'
@@ -157,99 +221,168 @@ export default function TinyFishAnalyze() {
         : '')
 
   return (
-    <div className="w-full h-full min-h-0 flex-1 grid grid-cols-2 bg-white">
-      <div className="border-r border-slate-200 flex flex-col min-w-0 min-h-0 h-full">
-        <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-          <div className="flex-1 min-w-0 font-mono text-xs text-slate-500 truncate">
-            {addressBarText || '—'}
-          </div>
+    <div className="w-full h-full min-h-0 flex-1 flex bg-white relative">
+      {/* When logs are hidden, show toggle at top-right under navbar */}
+      {!isLogsOpen ? (
+        <div className="absolute top-2 right-3 z-10">
+          <button
+            className="px-2 py-2 flex items-center space-x-2 rounded-md bg-white text-gray-700 hover:text-gray-900 shadow-xs hover:shadow"
+            onClick={() => setIsLogsOpen(true)}
+            type="button"
+            aria-label="Show logs"
+            title="Show logs"
+          >
+            <Logs className="w-4 h-4" />
+            <span className="text-xs font-medium">Show Logs</span>
+          </button>
         </div>
+      ) : null}
+      {/* Middle column: browser */}
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+        {/* Middle browser view */}
+        <div className="flex-1 min-h-0 overflow-auto bg-slate-100 px-4 py-4">
+          <div className="min-h-full flex items-center justify-center">
+            <div className="w-full max-w-[1024px] min-w-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            {/* Header aligned with Logs header */}
+            <div className="px-2 py-2 bg-white border-b border-slate-200 flex items-center gap-2">
+              <button
+                className="inline-flex items-center justify-center rounded-md bg-white border border-slate-300 text-slate-800 w-9 h-9 hover:bg-slate-50 disabled:bg-white disabled:border-slate-200 disabled:text-slate-400 disabled:opacity-100 disabled:cursor-not-allowed"
+                onClick={() => start()}
+                disabled={isRunning}
+                type="button"
+                aria-label={isRunning ? 'Running' : 'Start'}
+                title={isRunning ? 'Running' : 'Start'}
+              >
+                <Play className="w-4 h-4" />
+              </button>
+              <button
+                className="inline-flex items-center justify-center rounded-md bg-white border border-slate-300 text-slate-800 w-9 h-9 hover:bg-slate-50 disabled:bg-white disabled:border-slate-200 disabled:text-slate-400 disabled:opacity-100 disabled:cursor-not-allowed"
+                onClick={stop}
+                disabled={!isRunning}
+                type="button"
+                aria-label="Stop"
+                title="Stop"
+              >
+                <Square className="w-4 h-4" />
+              </button>
 
-        <div className="flex-1 bg-slate-900 min-h-0">
-          {phase === 'progress' || phase === 'complete' ? (
-            <iframe
-              title="tinyfish-stream"
-              src={streamingUrl}
-              className="w-full h-full border-0"
-              allow="autoplay"
-            />
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-200 gap-2 p-4 text-center">
-              <div className="font-semibold">
-                {phase === 'starting'
-                  ? 'Starting…'
-                  : phase === 'idle'
-                    ? 'Click Start'
-                    : isRunning
-                      ? 'Loading…'
-                      : 'Click Start'}
-              </div>
-              <div className="text-xs text-slate-300/90">
-                {phase === 'ready' ? 'Waiting for PROGRESS…' : 'Waiting for STREAMING_URL…'}
+              <div className="ml-1 min-w-0 font-mono text-xs text-slate-500 truncate flex-1">
+                {addressBarText || '—'}
               </div>
             </div>
-          )}
+
+            <div className="bg-slate-900 flex flex-col">
+              {/* Don't show the browser screen until streaming_url */}
+              <div className="w-full h-[600px] max-h-[600px] max-w-[1024px]">
+                {phase === 'complete' ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-200 gap-2 p-4 text-center">
+                    <div className="font-semibold">Streaming is complete.</div>
+                  </div>
+                ) : streamingUrl ? (
+                  <iframe
+                    title="webagent-stream"
+                    src={streamingUrl}
+                    className="w-full h-full border-0"
+                    allow="autoplay"
+                  />
+                ) : phase === 'starting' || phase === 'progress' || isRunning ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-200 gap-2 p-4 text-center">
+                    <div className="font-semibold">Browser View is loading</div>
+                    <div className="text-xs text-slate-300/90">Waiting for STREAMING_URL…</div>
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-200 gap-2 p-4 text-center">
+                    <div className="font-semibold">Click Start</div>
+                    <div className="text-xs text-slate-300/90">Waiting to start…</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="shrink-0 border-t bg-gray-50 px-3 py-3">
+                {latestPlainText ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="relative mt-0.5 inline-flex h-2.5 w-2.5 shrink-0">
+                      {isLive && !isComplete ? (
+                        <span
+                          className={`absolute inline-flex h-full w-full rounded-full ${statusDot.ping} opacity-60 animate-ping`}
+                        />
+                      ) : null}
+                      <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${statusDot.dot}`} />
+                    </span>
+                    <div className="text-sm text-gray-600 whitespace-pre-wrap wrap-break-word">{latestPlainText}</div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-600">Your agent actions will appear here</div>
+                )}
+              </div>
+            </div>
+          </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col min-w-0 min-h-0 h-full">
-        <div className="p-4 border-b border-slate-200 bg-white flex items-center">
-          <button
-            className="mr-2 rounded-lg bg-slate-900 border border-slate-700 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => start()}
-            disabled={isRunning}
-          >
-            {isRunning ? 'Running…' : 'Start'}
-          </button>
-          <button
-            className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={stop}
-            disabled={!isRunning}
-          >
-            Stop
-          </button>
-        </div>
-
-        <div className="px-4 py-3 border-b border-slate-200 bg-white">
-          <div className="font-semibold mb-1 text-slate-900">Actions & Statuses</div>
-          <div className="text-xs text-slate-500">
-            Phase: {phase}
-            {currentPurpose ? ` · ${currentPurpose}` : ''}
+      {/* Right logs sidebar: animated show/hide */}
+      <div
+        className="h-full shrink-0 overflow-hidden border-l border-slate-200 bg-white transition-[width] duration-200 ease-in-out"
+        style={{ width: isLogsOpen ? 480 : 0 }}
+      >
+        <aside
+          className={`w-[480px] h-full bg-white flex flex-col min-h-0 transition-transform duration-200 ease-in-out ${isLogsOpen ? 'translate-x-0' : 'translate-x-full'}`}
+          aria-hidden={!isLogsOpen}
+        >
+          <div className="pl-4 pr-2 py-2 border-b border-slate-200 bg-white flex items-center">
+            <div className="font-semibold text-slate-900">
+              Logs <span className="font-normal text-xs text-slate-400">[ {sidebarEvents.length} messages ]</span>
+            </div>
+            <div className="flex-1" />
+            <button
+              className="inline-flex items-center justify-center rounded-md bg-gray-100 text-slate-700 hover:bg-slate-50 w-9 h-9"
+              onClick={() => setIsLogsOpen(false)}
+              type="button"
+              aria-label="Hide logs"
+              title="Hide logs"
+            >
+              <Logs className="w-4 h-4" />
+            </button>
           </div>
-        </div>
 
-        <div className="p-4 overflow-auto flex-1 min-h-0">
-          {events.length === 0 ? (
-            <div className="text-sm text-slate-500">Starting will stream status updates here.</div>
-          ) : (
-            events.map((evt, idx) => (
-              <div key={`${evt?.type || 'evt'}-${idx}`} className="border border-slate-200 rounded-xl p-3 mb-3 bg-white">
-                <div className="font-semibold text-slate-900">{evt.type}</div>
-                {evt.timestamp ? <div className="text-xs text-slate-500 mt-1">{evt.timestamp}</div> : null}
+          <div className="flex-1 min-h-0 overflow-auto p-3">
+            {sidebarEvents.length === 0 ? (
+              <div className="text-sm text-slate-500">Starting will stream status updates here.</div>
+            ) : (
+              <div className="space-y-1">
+                {sidebarEvents.map((evt, idx) => {
+                  const type = String(evt?.type || '').toUpperCase()
+                  const icon =
+                    type === 'PROGRESS' ? (
+                      <span className="my-1 inline-block h-2 w-2 rounded-full bg-green-400" />
+                    ) : type === 'HEARTBEAT' ? (
+                      <Heart className="my-0.5 w-3.5 h-3.5 text-pink-500" />
+                    ) : type === 'STARTED' ? (
+                      <span className="my-1 inline-block h-2 w-2 rounded-full bg-yellow-400" />
+                    ) : type === 'COMPLETE' ? (
+                      <span className="my-1 inline-block h-2 w-2 bg-orange-400" />
+                    ) : null
 
-                {evt.type === 'STREAMING_URL' ? (
-                  <div className="mt-2 text-xs break-all text-slate-700">{evt.streaming_url || evt.url}</div>
-                ) : null}
-
-                {evt.type === 'PROGRESS' ? (
-                  <div className="mt-2 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{evt.purpose}</div>
-                ) : null}
-
-                {evt.type === 'COMPLETE' ? (
-                  <div className="mt-2 rounded-lg bg-slate-900 text-slate-200 p-3 overflow-x-auto whitespace-pre-wrap wrap-break-word">
-                    <code className="font-mono text-xs">{JSON.stringify(evt.result ?? result, null, 2)}</code>
-                  </div>
-                ) : null}
-
-                {evt.type === 'ERROR' ? (
-                  <div className="mt-2 text-sm text-red-700 leading-relaxed whitespace-pre-wrap wrap-break-word">
-                    Error: {evt.error}
-                  </div>
-                ) : null}
+                  const t = formatLogTime(evt?.timestamp)
+                  const message = sidebarEventMessage(evt)
+                  return (
+                    <div
+                      key={`${evt?.type || 'evt'}-${idx}`}
+                      className="flex flex-col text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 whitespace-pre-wrap wrap-break-word gap-2"
+                    >
+                      <span className="font-mono text-slate-500">{`[${t}] [${type}]`}</span>
+                      <div className="flex items-start space-x-2">
+                        {icon}
+                        <p>{message}</p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))
-          )}
-        </div>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   )
