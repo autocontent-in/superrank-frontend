@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Heart, Loader2, Logs, Play, Square } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Heart,
+  Loader2,
+  Logs,
+  Play,
+  Square,
+  TrendingUp,
+} from 'lucide-react'
 import AiApi from '../../api/AiApi'
 
 function tryParseJsonLine(line) {
@@ -505,45 +514,61 @@ export default function MultiWebAgents() {
     return (
       <div className="w-full h-full min-h-0 flex-1 bg-slate-50 px-6 py-8">
         <div className="h-full w-full flex items-center justify-center">
-          <div className="w-full max-w-4xl rounded-xl border border-slate-200 bg-white overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 bg-white">
-              <div className="text-xs font-semibold tracking-wide uppercase text-slate-500">Agent Instructions</div>
-            </div>
-
-            <div className="relative">
-              <textarea
-                value={userQueryInput}
-                onChange={(e) => setUserQueryInput(e.target.value)}
-                placeholder="What should your agent do?"
-                className="w-full h-[280px] md:h-[280px] resize-none bg-white px-6 py-6 pr-24 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none"
-              />
-
-              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-slate-200" />
-
-              <div className="absolute bottom-5 right-5">
-                <button
-                  type="button"
-                  onClick={handleGenerateWebAgentQuery}
-                  disabled={isGeneratingPrompt || !userQueryInput.trim()}
-                  className="pointer-events-auto inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-                >
-                  {isGeneratingPrompt ? (
-                    <>
-                      <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden />
-                      Please wait...
-                    </>
-                  ) : (
-                    <>
-                      Continue
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+          <div className="w-full max-w-4xl flex flex-col gap-3">
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 bg-white">
+                <div className="text-xs font-semibold tracking-wide uppercase text-slate-500">Agent Instructions</div>
               </div>
+
+              <div className="relative">
+                <textarea
+                  value={userQueryInput}
+                  onChange={(e) => setUserQueryInput(e.target.value)}
+                  placeholder="What should your agent do?"
+                  className="w-full h-[280px] md:h-[280px] resize-none bg-white px-6 py-6 pr-24 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                />
+
+                <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-slate-200" />
+
+                <div className="absolute bottom-5 right-5">
+                  <button
+                    type="button"
+                    onClick={handleGenerateWebAgentQuery}
+                    disabled={isGeneratingPrompt || !userQueryInput.trim()}
+                    className="pointer-events-auto inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                  >
+                    {isGeneratingPrompt ? (
+                      <>
+                        <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden />
+                        Please wait...
+                      </>
+                    ) : (
+                      <>
+                        Continue
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {generateError ? (
+                <div className="px-6 pb-4 pt-2 text-sm text-red-600 border-t border-slate-100">{generateError}</div>
+              ) : null}
             </div>
-            {generateError ? (
-              <div className="px-6 pb-4 text-sm text-red-600 border-t border-slate-100">{generateError}</div>
-            ) : null}
+
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  setGenerateError('')
+                  setUserQueryInput('Current SEO and GEO with AI')
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                <TrendingUp className="w-4 h-4 shrink-0 text-slate-500" aria-hidden />
+                SEO Tends
+              </button>
+            </div>
           </div>
         </div>
       </div>
