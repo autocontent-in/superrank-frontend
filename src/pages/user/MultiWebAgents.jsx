@@ -228,7 +228,7 @@ function RunStatusFooter({ run, isRunning }) {
 function AllRunsGrid({ runOrder, runs, isRunning }) {
   return (
     <div className="flex-1 min-h-0 overflow-auto bg-gray-50 px-4 py-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[1600px] mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-7xl mx-auto">
         {runOrder.map((runId) => {
           const run = runs[runId]
           if (!run) return null
@@ -556,14 +556,14 @@ export default function MultiWebAgents() {
         <div className="h-full w-full flex items-center justify-center">
           <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-sm p-6 md:p-8 flex flex-col gap-6">
             <div>
-              <div className="text-xs font-semibold tracking-wide uppercase text-slate-500">Your Query</div>
+              <span className="text-xs font-semibold tracking-wide uppercase text-white bg-slate-400 px-2 py-1 rounded-md">Your Query</span>
               <p className="mt-2 text-base text-slate-800 whitespace-pre-wrap">{userQueryInput.trim()}</p>
             </div>
 
             <hr className="border-dashed border-slate-300" />
 
             <div>
-              <div className="text-xs font-semibold tracking-wide uppercase text-slate-500">AI Response</div>
+              <span className="text-xs font-semibold tracking-wide uppercase text-white bg-blue-400 px-2 py-1 rounded-md">AI Response</span>
               <div className="mt-3 flex flex-col gap-4">
                 {llmQueryItems.length > 0 ? (
                   llmQueryItems.map((row, idx) => (
@@ -577,7 +577,7 @@ export default function MultiWebAgents() {
                 )}
               </div>
               {!isPossible ? (
-                <p className="mt-4 text-sm font-medium text-red-600">
+                <p className="mt-6 text-sm font-medium text-red-600 bg-red-50 px-2 py-2 border border-red-200 rounded-md">
                   Before you continue, your query might break the AI response
                 </p>
               ) : null}
@@ -664,19 +664,26 @@ export default function MultiWebAgents() {
                 : typeof run?.agent === 'number'
                   ? `Agent ${run.agent}`
                   : `Run ${shortRunId(runId)}`
+            const showLiveDot = run && run.phase !== 'complete'
             return (
               <button
                 key={runId}
                 type="button"
                 onClick={() => setActiveTab(runId)}
-                className={`shrink-0 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors max-w-[200px] truncate ${
+                className={`shrink-0 inline-flex items-center gap-2 max-w-[220px] px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
                   activeTab === runId
                     ? 'bg-blue-50 border-blue-200 text-blue-800'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
                 title={runId}
               >
-                {label}
+                {showLiveDot ? (
+                  <span
+                    className="shrink-0 h-2 w-2 rounded-full bg-green-500"
+                    aria-hidden
+                  />
+                ) : null}
+                <span className="truncate min-w-0">{label}</span>
               </button>
             )
           })}
