@@ -1,8 +1,9 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
-import { Eye, EyeOff, BookOpen } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import superrankLogo from '../../assets/superrank_logo.png'
 import { useState, useEffect } from 'react'
 
 const validationSchema = Yup.object({
@@ -71,9 +72,11 @@ export function Login() {
     <div className="w-full max-w-[420px]">
       <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8">
         <div className="flex flex-col items-center mb-6">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center mb-4">
-            <BookOpen className="w-5 h-5 text-white" strokeWidth={2} />
-          </div>
+          <img
+            src={superrankLogo}
+            alt={import.meta.env.VITE_APP_NAME ?? 'Superrank'}
+            className="h-12 w-auto max-w-[200px] object-contain rounded-lg mb-4"
+          />
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Hey, welcome back 👋
           </h1>

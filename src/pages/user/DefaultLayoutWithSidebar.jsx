@@ -37,6 +37,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import Api from '../../api/api'
+import superrankLogo from '../../assets/superrank_logo.png'
 import { SmartModal } from '../../components/ui/SmartModal'
 import { UserAvatar } from '../../components/UserAvatar'
 import { useSnackbar, SnackbarMainContentContainer } from '../../components/ui/SnackbarProvider'
@@ -857,9 +858,12 @@ function Sidebar({ isSidebarExpanded, onToggleSidebar }) {
             className={`flex items-center gap-2 min-w-0 ${collapsed ? 'flex-1 justify-center' : 'flex-1'
               }`}
           >
-            <div className="w-9 h-9 rounded-md bg-linear-to-br from-pink-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg shadow-pink-500/25">
-              S
-            </div>
+            <img
+              src={superrankLogo}
+              alt={collapsed ? (import.meta.env.VITE_APP_NAME ?? 'Crapbook') : ''}
+              className={`object-contain shrink-0 rounded-lg ${collapsed ? 'h-9 w-9' : 'h-9 w-auto max-w-[120px]'}`}
+              aria-hidden={!collapsed}
+            />
             {!collapsed && <span className="font-semibold text-slate-800 truncate">{import.meta.env.VITE_APP_NAME ?? 'Crapbook'}</span>}
           </NavLink>
           {!collapsed && toggleButton}
