@@ -1846,6 +1846,47 @@ function SeoServicesRouteNavbar() {
     )
   }
 
+  {
+    const blogDetailMatch = pathname.match(/^\/seo-services\/blogs\/([^/]+)$/)
+    if (blogDetailMatch && blogDetailMatch[1] !== 'new') {
+      return (
+        <div className={`${bar} justify-between`}>
+          <div className={crumbs}>
+            <Link
+              to="/"
+              className="flex shrink-0 items-center text-slate-500 transition-colors hover:text-slate-800"
+              title="Home"
+            >
+              <House className="h-4 w-4" />
+            </Link>
+            <span className="text-slate-400">/</span>
+            <Link
+              to="/seo-services"
+              className="shrink-0 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800"
+            >
+              SEO Services
+            </Link>
+            <span className="text-slate-400">/</span>
+            <Link
+              to="/seo-services/blogs"
+              className="shrink-0 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800"
+            >
+              Blogs
+            </Link>
+            <span className="text-slate-400">/</span>
+            <span className="truncate text-sm font-semibold text-slate-800">Blog</span>
+          </div>
+          <Link
+            to="/seo-services/blogs/new"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            + Create
+          </Link>
+        </div>
+      )
+    }
+  }
+
   if (pathname === '/seo-services/blog') {
     return (
       <div className={bar}>

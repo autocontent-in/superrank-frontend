@@ -18,6 +18,7 @@ import { BusinessProfile } from './pages/user/BusinessProfile'
 import { SeoServices } from './pages/user/SeoServices'
 import { SEOServices } from './pages/user/SEOServices/SEOServices'
 import { Blogs } from './pages/user/SEOServices/Blogs'
+import { BlogView } from './pages/user/SEOServices/BlogView'
 import { NewBlog } from './pages/user/SEOServices/NewBlog'
 import { Blog } from './pages/user/SEOServices/Blog'
 import { FriendlinessAndResponsiveness } from './pages/user/FriendlinessAndResponsiveness'
@@ -60,6 +61,7 @@ const allRoutes = [
             children: [
               { index: true, element: <SeoServices /> },
               { path: 'blogs/new', element: <NewBlog /> },
+              { path: 'blogs/:blogId', element: <BlogView /> },
               { path: 'blogs', element: <Blogs /> },
               { path: 'blog', element: <Blog /> },
             ],

@@ -784,12 +784,10 @@ function StepOutputPeek({ stream, onOpen, embedded = false }) {
   if (body == null || String(body).trim() === '') return null
 
   const preview = getStreamStepPreview(body)
-  const subtitle = typeof stream.at === 'number' ? new Date(stream.at).toLocaleTimeString() : ''
 
   function openModal() {
     onOpen?.({
       title: stream.title,
-      subtitle,
       body: String(body),
     })
   }

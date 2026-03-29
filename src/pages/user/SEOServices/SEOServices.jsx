@@ -202,7 +202,12 @@ export function SEOServices() {
   const isSeoServicesHomeRoute = location.pathname === '/seo-services'
   const isBlogsRoute = location.pathname === '/seo-services/blogs'
   const isBlogRoute = location.pathname === '/seo-services/blog'
-  const isFullWidthSeoChildRoute = isCreateBlogRoute || isSeoServicesHomeRoute || isBlogsRoute || isBlogRoute
+  const isBlogDetailRoute =
+    location.pathname.startsWith('/seo-services/blogs/') &&
+    location.pathname !== '/seo-services/blogs/new' &&
+    location.pathname !== '/seo-services/blogs'
+  const isFullWidthSeoChildRoute =
+    isCreateBlogRoute || isSeoServicesHomeRoute || isBlogsRoute || isBlogRoute || isBlogDetailRoute
 
   useEffect(() => {
     let cancelled = false

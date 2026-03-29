@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Check, ChevronLeft, Pencil } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  ChevronLeft,
+  FileText,
+  Loader2,
+  Pencil,
+  PenLine,
+  Search,
+  Sparkles,
+  Terminal,
+} from 'lucide-react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useSnackbar } from '../../../components/ui/SnackbarProvider'
 import Api from '../../../api/api.jsx'
+import AiApi from '../../../api/AiApi.jsx'
 import { SmartModal } from '../../../components/ui/SmartModal'
 import { BlogWorkflowPipeline } from './BlogWorkflowPipeline.jsx'
 import {
@@ -53,7 +66,21 @@ function newCompetitorId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}-${Math.random()}`
 }
 
-function buildStep2Payload(form, competitors) {
+function blogEntryForPayload(b) {
+  if (!b || typeof b !== 'object') return null
+  const title = b.title != null ? String(b.title).trim() : ''
+  const link = b.link != null ? String(b.link).trim() : ''
+  const summary = b.summary != null ? String(b.summary).trim() : ''
+  const dateRaw = b.date ?? b.datetime
+  const date = dateRaw != null ? String(dateRaw).trim() : ''
+  if (!title && !link && !summary && !date) return null
+  return { title, link, summary, date }
+}
+
+function buildStep2Payload(form, competitors, profileBlogs = []) {
+  const blogs = Array.isArray(profileBlogs)
+    ? profileBlogs.map(blogEntryForPayload).filter(Boolean)
+    : []
   return {
     company_name: form.company_name,
     company_website: form.company_website,
@@ -74,9 +101,8 @@ function buildStep2Payload(form, competitors) {
       description: form.company_description,
       core_values: form.core_values,
     },
-    blogs_list: {
-      blogs_page_url: form.blogs_page_url,
-    },
+    blog_page_url: form.blogs_page_url,
+    blogs,
     competitors: competitors.map((c) => ({
       company_name: c.company_name,
       company_website: c.company_website,
@@ -84,29 +110,27 @@ function buildStep2Payload(form, competitors) {
   }
 }
 
-function normalizeTopicSuggestion(b) {
-  if (!b || typeof b !== 'object') return { blog_title: '', reason: '' }
-  return {
-    blog_title: String(b.blog_title ?? b.title ?? '').trim(),
-    reason: String(b.reason ?? b.why ?? b.summary ?? '').trim(),
-  }
+function formatBlogDate(iso) {
+  if (iso == null || iso === '') return ''
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString(undefined, { dateStyle: 'medium' })
 }
 
-function extractBlogsFromWorkflowCompleted(parsed) {
+/** Display label for a suggested topic row (supports suggested_blog_topics + legacy shapes). */
+function suggestedTopicLabel(row) {
+  if (!row || typeof row !== 'object') return ''
+  return String(row.topic ?? row.blog_title ?? row.title ?? '').trim()
+}
+
+function extractSuggestedBlogTopicsFromWorkflowCompleted(parsed) {
   if (!parsed || parsed.type !== 'workflow' || parsed.event !== 'completed') return null
   const d = parsed.data
   if (!d || typeof d !== 'object') return null
-  if (Array.isArray(d.blogs)) return d.blogs
+  if (Array.isArray(d.suggested_blog_topics)) return d.suggested_blog_topics
   if (Array.isArray(d.blog_topics)) return d.blog_topics
+  if (Array.isArray(d.blogs)) return d.blogs
   if (d.result && typeof d.result === 'object' && Array.isArray(d.result.blogs)) return d.result.blogs
   return null
-}
-
-function extractBlogResultFromCreateCompleted(parsed) {
-  if (!parsed || parsed.type !== 'workflow' || parsed.event !== 'completed') return null
-  const d = parsed.data
-  if (d == null) return null
-  return d
 }
 
 async function consumeAiEventStream(endpoint, body, { signal, onRawLine, onParsed }) {
@@ -176,36 +200,50 @@ const BLOG_CREATE_STEPS = [
   { step: 2, title: 'Business profile' },
   { step: 3, title: 'Blog direction' },
   { step: 4, title: 'Topic ideas' },
-  { step: 5, title: 'Writing' },
-  { step: 6, title: 'Complete' },
+  { step: 5, title: 'Final Blog' },
 ]
 
 const STEP_HEADER_TITLES = {
   2: 'Your Business Profile',
   3: 'Blog Direction',
   4: 'Topic Ideas',
-  5: 'Writing',
-  6: 'Complete',
+  5: 'Final Blog',
 }
+
+/** Primary CTA — matches Business Profile / app blue theme */
+const BTN_PRIMARY =
+  'rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors'
+
+const BTN_SECONDARY =
+  'inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 transition-colors'
+
+const BTN_HEADER_OUTLINE =
+  'rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors'
 
 function BlogCreateStepsNav({ currentStep }) {
   return (
     <nav aria-label="Blog creation steps" className="text-sm">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500 px-6">Steps</h2>
-      <ol className="m-0 py-4 list-none space-y-2 p-0 w-full">
+      <h2 className="mb-3 px-6 text-xs font-semibold uppercase tracking-wide text-blue-900/50">Steps</h2>
+      <ol className="m-0 list-none space-y-1 p-0 py-4">
         {BLOG_CREATE_STEPS.map(({ step: n, title }, index) => {
           const done = currentStep > n
           const active = currentStep === n
           return (
-            <li key={n} className="px-6 py-1 flex items-center space-x-4">
+            <li key={n} className="flex items-center space-x-2.5 px-4 py-1.5 sm:px-6">
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                  done ? 'bg-emerald-600 text-white' : active ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-shadow ${
+                  done
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : active
+                      ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 ring-offset-1 ring-offset-slate-50'
+                      : 'border border-slate-200 bg-white text-slate-500'
                 }`}
               >
-                {done ? <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden /> : index + 1}
+                {done ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden /> : index + 1}
               </span>
-              <span className={`min-w-0 ${active ? 'font-semibold text-slate-900' : 'text-slate-600'}`}>
+              <span
+                className={`min-w-0 ${active ? 'font-semibold text-blue-950' : done ? 'text-slate-700' : 'text-slate-500'}`}
+              >
                 {title}
               </span>
             </li>
@@ -225,9 +263,12 @@ export function NewBlog() {
   const [step, setStep] = useState(1)
   const [prefillLoading, setPrefillLoading] = useState(false)
   const [prefillError, setPrefillError] = useState(null)
+  /** From GET /business-profiles/latest — required before starting the blog flow. */
+  const [hasBusinessProfile, setHasBusinessProfile] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [competitors, setCompetitors] = useState([])
   const [profileEditing, setProfileEditing] = useState(false)
+  const [profileBlogPosts, setProfileBlogPosts] = useState([])
 
   const [blogTopicInput, setBlogTopicInput] = useState('')
   const [blogDescriptionInput, setBlogDescriptionInput] = useState('')
@@ -235,21 +276,25 @@ export function NewBlog() {
   const [researchPhase, setResearchPhase] = useState('idle')
   const [topicSuggestions, setTopicSuggestions] = useState([])
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(null)
+  /** Full topic object from the workflow (all fields); sent as `selected_topic` to create-blog. */
+  const [selectedTopic, setSelectedTopic] = useState(null)
 
   const [topicResearchWorkflow, setTopicResearchWorkflow] = useState([])
-  const [createBlogWorkflow, setCreateBlogWorkflow] = useState([])
+  const [writeBlogStreamLog, setWriteBlogStreamLog] = useState('')
   const [researchWorkflowViz, setResearchWorkflowViz] = useState(WORKFLOW_VIZ_INITIAL)
-  const [createWorkflowViz, setCreateWorkflowViz] = useState(WORKFLOW_VIZ_INITIAL)
 
   const [finalBlogTopic, setFinalBlogTopic] = useState('')
   const [finalBlogDescription, setFinalBlogDescription] = useState('')
-  const [blogResult, setBlogResult] = useState(null)
+  const [blogHtmlContent, setBlogHtmlContent] = useState('')
+  const [writeBlogStreaming, setWriteBlogStreaming] = useState(false)
+  const [savingBlog, setSavingBlog] = useState(false)
+  const writeSelectedTopicRef = useRef(null)
   const [streamModal, setStreamModal] = useState(null)
+  const [sseLogsModalOpen, setSseLogsModalOpen] = useState(false)
   const [blogPreviewOpen, setBlogPreviewOpen] = useState(false)
 
   const researchAbortRef = useRef(null)
   const createAbortRef = useRef(null)
-  const savedBundleRef = useRef(null)
 
   const setField = useCallback((key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -266,24 +311,29 @@ export function NewBlog() {
   const resetModal = useCallback(() => {
     setStep(1)
     setPrefillError(null)
+    setHasBusinessProfile(false)
     setForm(emptyForm())
     setCompetitors([])
+    setProfileBlogPosts([])
     setProfileEditing(false)
     setBlogTopicInput('')
     setBlogDescriptionInput('')
     setResearchPhase('idle')
     setTopicSuggestions([])
     setSelectedSuggestionIndex(null)
+    setSelectedTopic(null)
     setTopicResearchWorkflow([])
-    setCreateBlogWorkflow([])
+    setWriteBlogStreamLog('')
     setResearchWorkflowViz(WORKFLOW_VIZ_INITIAL)
-    setCreateWorkflowViz(WORKFLOW_VIZ_INITIAL)
     setFinalBlogTopic('')
     setFinalBlogDescription('')
-    setBlogResult(null)
+    setBlogHtmlContent('')
+    setWriteBlogStreaming(false)
+    setSavingBlog(false)
+    writeSelectedTopicRef.current = null
     setStreamModal(null)
+    setSseLogsModalOpen(false)
     setBlogPreviewOpen(false)
-    savedBundleRef.current = null
     if (researchAbortRef.current) researchAbortRef.current.abort()
     if (createAbortRef.current) createAbortRef.current.abort()
     researchAbortRef.current = null
@@ -293,6 +343,7 @@ export function NewBlog() {
   const loadPrefill = useCallback(async () => {
     setPrefillLoading(true)
     setPrefillError(null)
+    setProfileBlogPosts([])
     const next = emptyForm()
     const nextCompetitors = []
 
@@ -303,12 +354,15 @@ export function NewBlog() {
 
     const [bpRes, compRes] = results
 
+    let businessProfilePresent = false
     if (bpRes.status === 'fulfilled') {
       const bp = bpRes.value?.data?.data
-      if (bp) {
+      if (bp && typeof bp === 'object') {
+        businessProfilePresent = true
         const ci = bp.company_info || {}
         const idn = bp.company_identity || {}
         const blogsList = bp.blogs_list || {}
+        setProfileBlogPosts(Array.isArray(blogsList.blogs) ? blogsList.blogs : [])
         next.industry = String(ci.industry ?? '')
         next.company_type = String(ci.company_type ?? '')
         next.product_category = String(ci.product_category ?? '')
@@ -320,6 +374,7 @@ export function NewBlog() {
         next.blogs_page_url = String(blogsList.blogs_page_url ?? '')
       }
     }
+    setHasBusinessProfile(businessProfilePresent)
 
     if (compRes.status === 'fulfilled' && compRes.value) {
       const row = competitorsRowFromResponse(compRes.value, companyId)
@@ -363,16 +418,17 @@ export function NewBlog() {
   const runTopicResearch = async () => {
     if (researchAbortRef.current) researchAbortRef.current.abort()
     researchAbortRef.current = new AbortController()
-    const payload = buildStep2Payload(form, competitors)
+    const payload = buildStep2Payload(form, competitors, profileBlogPosts)
     setResearchWorkflowViz(WORKFLOW_VIZ_INITIAL)
     setTopicResearchWorkflow([])
     setResearchPhase('streaming')
     setTopicSuggestions([])
     setSelectedSuggestionIndex(null)
+    setSelectedTopic(null)
 
     try {
       await consumeAiEventStream(
-        '/api/v1/research-blog-topic',
+        '/api/v1/research-blog-topics',
         { data: payload },
         {
           signal: researchAbortRef.current.signal,
@@ -385,9 +441,11 @@ export function NewBlog() {
               return applyBrowserStreamToWorkflow(w, parsed)
             })
             if (parsed.type === 'workflow' && parsed.event === 'completed') {
-              const raw = extractBlogsFromWorkflowCompleted(parsed)
-              const normalized = Array.isArray(raw) ? raw.map(normalizeTopicSuggestion).filter((x) => x.blog_title) : []
-              setTopicSuggestions(normalized.length ? normalized : [])
+              const raw = extractSuggestedBlogTopicsFromWorkflowCompleted(parsed)
+              const list = Array.isArray(raw)
+                ? raw.filter((row) => row && typeof row === 'object' && suggestedTopicLabel(row))
+                : []
+              setTopicSuggestions(list)
               setResearchPhase('pick')
             }
           },
@@ -403,51 +461,69 @@ export function NewBlog() {
     setResearchPhase((p) => (p === 'streaming' ? 'pick' : p))
   }
 
-  const runCreateBlog = async (topic, description) => {
+  const runWriteBlog = async (topic, description, selectedTopicPayload = null) => {
     if (createAbortRef.current) createAbortRef.current.abort()
     createAbortRef.current = new AbortController()
-    const base = buildStep2Payload(form, competitors)
-    setCreateWorkflowViz(WORKFLOW_VIZ_INITIAL)
-    setCreateBlogWorkflow([])
-    setBlogResult(null)
+    const base = buildStep2Payload(form, competitors, profileBlogPosts)
+    writeSelectedTopicRef.current =
+      selectedTopicPayload && typeof selectedTopicPayload === 'object' ? selectedTopicPayload : null
+    setWriteBlogStreamLog('')
+    setBlogHtmlContent('')
+    setWriteBlogStreaming(true)
+
+    const body = {
+      data: {
+        ...base,
+        blog_topic: topic,
+        blog_description: description,
+        ...(selectedTopicPayload && typeof selectedTopicPayload === 'object'
+          ? { selected_topic: selectedTopicPayload }
+          : {}),
+      },
+    }
 
     try {
-      await consumeAiEventStream(
-        '/api/v1/create-blog',
-        {
-          data: {
-            ...base,
-            blog_topic: topic,
-            blog_description: description,
-          },
-        },
-        {
-          signal: createAbortRef.current.signal,
-          onRawLine: (line) => {
-            setCreateBlogWorkflow((prev) => [...prev, line])
-          },
-          onParsed: (parsed) => {
-            setCreateWorkflowViz((p) => {
-              const w = applyWorkflowStreamEvent(p, parsed)
-              return applyBrowserStreamToWorkflow(w, parsed)
-            })
-            if (parsed.type === 'workflow' && parsed.event === 'completed') {
-              const br = extractBlogResultFromCreateCompleted(parsed)
-              if (br != null) setBlogResult(br)
-            }
-          },
-        },
-      )
-      setStep(6)
+      const res = await AiApi.streamPost('/write-blog', body, {
+        signal: createAbortRef.current.signal,
+      })
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '')
+        throw new Error(`HTTP ${res.status}${errText ? ` — ${errText}` : ''}`)
+      }
+
+      if (!res.body) throw new Error('No response body (streaming unsupported?)')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        setBlogHtmlContent((prev) => prev + chunk)
+        setWriteBlogStreamLog((prev) => prev + chunk)
+      }
     } catch (e) {
       if (String(e?.name) === 'AbortError') return
       showSnackbar({ message: e?.message || String(e), variant: 'error', duration: 5000 })
     } finally {
+      setWriteBlogStreaming(false)
       createAbortRef.current = null
     }
   }
 
-  const handleContinueStep1 = () => setStep(2)
+  const handleContinueStep1 = () => {
+    if (!hasBusinessProfile) {
+      showSnackbar({
+        message: 'Create a business profile first to continue.',
+        variant: 'warning',
+        duration: 4000,
+      })
+      return
+    }
+    setStep(2)
+  }
   const handleContinueStep2 = () => {
     if (profileEditing) {
       showSnackbar({ message: 'Save your business profile first.', variant: 'warning', duration: 3000 })
@@ -457,11 +533,20 @@ export function NewBlog() {
   }
   const handleBack = () => {
     if (step <= 1) return
-    if (step === 5) return
+    if (step === 5 && writeBlogStreaming) return
+    if (step === 5) {
+      if (createAbortRef.current) createAbortRef.current.abort()
+      createAbortRef.current = null
+      setBlogHtmlContent('')
+      setWriteBlogStreamLog('')
+      setWriteBlogStreaming(false)
+      writeSelectedTopicRef.current = null
+    }
     if (step === 4) {
       setResearchPhase('idle')
       setTopicSuggestions([])
       setSelectedSuggestionIndex(null)
+      setSelectedTopic(null)
     }
     setStep((s) => Math.max(1, s - 1))
   }
@@ -474,131 +559,89 @@ export function NewBlog() {
       runTopicResearch()
       return
     }
+    setSelectedTopic(null)
     setFinalBlogTopic(t)
     setFinalBlogDescription(d)
     setStep(5)
-    runCreateBlog(t, d)
+    runWriteBlog(t, d, null)
   }
 
   const handleContinueStep4 = () => {
-    if (selectedSuggestionIndex == null || !topicSuggestions[selectedSuggestionIndex]) {
+    if (selectedTopic == null || selectedSuggestionIndex == null || !topicSuggestions[selectedSuggestionIndex]) {
       showSnackbar({ message: 'Select a blog topic to continue.', variant: 'warning', duration: 4000 })
       return
     }
-    const s = topicSuggestions[selectedSuggestionIndex]
-    setFinalBlogTopic(s.blog_title)
-    setFinalBlogDescription(s.reason)
+    const label = suggestedTopicLabel(selectedTopic)
+    const reason = String(selectedTopic.reason ?? selectedTopic.why ?? selectedTopic.summary ?? '').trim()
+    setFinalBlogTopic(label)
+    setFinalBlogDescription(reason)
     setStep(5)
-    runCreateBlog(s.blog_title, s.reason)
+    runWriteBlog(label, reason, selectedTopic)
   }
 
-  const handleSaveAll = () => {
-    savedBundleRef.current = {
-      topic_research_workflow: topicResearchWorkflow,
-      create_blog_workflow: createBlogWorkflow,
-      blog_data: blogResult,
-      finalBlogTopic,
-      finalBlogDescription,
+  const handleSaveAndContinueBlog = async () => {
+    const content = blogHtmlContent.trim()
+    if (!content) {
+      showSnackbar({ message: 'Wait for the blog content to finish streaming.', variant: 'warning', duration: 4000 })
+      return
     }
-    showSnackbar({ message: 'Saved locally — ready to persist to your database next.', variant: 'success', duration: 4000 })
-  }
-
-  const renderBlogBody = () => {
-    if (blogResult == null) return '—'
-    if (typeof blogResult === 'string') return blogResult
-    const md = blogResult.markdown ?? blogResult.content ?? blogResult.body ?? blogResult.blog
-    if (typeof md === 'string') return md
+    if (writeBlogStreaming) {
+      showSnackbar({ message: 'Still receiving content. Wait for streaming to finish.', variant: 'warning', duration: 4000 })
+      return
+    }
+    setSavingBlog(true)
     try {
-      return JSON.stringify(blogResult, null, 2)
-    } catch {
-      return String(blogResult)
+      const res = await Api.post('/ai-blogs', {
+        data: {
+          content,
+          selected_topic: writeSelectedTopicRef.current,
+        },
+      })
+      const id = res?.data?.data?.id ?? res?.data?.id
+      if (id == null) {
+        showSnackbar({ message: 'Saved, but no blog id was returned.', variant: 'warning', duration: 5000 })
+        return
+      }
+      navigate(`/seo-services/blogs/${encodeURIComponent(String(id))}`)
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || String(e)
+      showSnackbar({ message: msg, variant: 'error', duration: 5000 })
+    } finally {
+      setSavingBlog(false)
     }
   }
 
   const footerButtons = () => {
-    if (step === 1) {
-      return (
-        <div className="flex w-full flex-wrap items-center justify-end">
-          <button
-            type="button"
-            onClick={handleContinueStep1}
-            className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            Continue
-          </button>
-        </div>
-      )
-    }
-
-    if (step === 6) {
-      return (
-        <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/seo-services/blogs')}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Close
-          </button>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setBlogPreviewOpen(true)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-            >
-              Show blog
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveAll}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      )
-    }
-
     return (
       <div className="flex w-full flex-wrap items-center justify-between">
-        <button
-          type="button"
-          onClick={handleBack}
-          disabled={(step === 4 && researchPhase === 'streaming') || step === 5}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-40"
-        >
+        <button type="button" onClick={handleBack} disabled={(step === 4 && researchPhase === 'streaming') || (step === 5 && writeBlogStreaming)} className={BTN_SECONDARY}>
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Go back
         </button>
         <div className="flex flex-wrap gap-2">
           {step === 2 ? (
-            <button
-              type="button"
-              onClick={handleContinueStep2}
-              disabled={prefillLoading || profileEditing}
-              className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              Continue
+            <button type="button" onClick={handleContinueStep2} disabled={prefillLoading || profileEditing} className={BTN_PRIMARY}>
+              Next
             </button>
           ) : null}
           {step === 3 ? (
-            <button
-              type="button"
-              onClick={handleContinueStep3}
-              className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-            >
-              Continue
+            <button type="button" onClick={handleContinueStep3} className={BTN_PRIMARY}>
+              Next
             </button>
           ) : null}
           {step === 4 && researchPhase === 'pick' ? (
+            <button type="button" onClick={handleContinueStep4} disabled={!topicSuggestions.length} className={BTN_PRIMARY}>
+              Next
+            </button>
+          ) : null}
+          {step === 5 ? (
             <button
               type="button"
-              onClick={handleContinueStep4}
-              disabled={!topicSuggestions.length}
-              className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              onClick={handleSaveAndContinueBlog}
+              disabled={savingBlog || writeBlogStreaming || !blogHtmlContent.trim()}
+              className={BTN_PRIMARY}
             >
-              Continue
+              {savingBlog ? 'Saving…' : 'Save and Continue'}
             </button>
           ) : null}
         </div>
@@ -608,20 +651,97 @@ export function NewBlog() {
 
   const rightColumn = () => {
     if (step === 1) {
+      const welcomeFeatures = [
+        {
+          icon: Building2,
+          title: 'Profile-grounded context',
+          desc: 'Uses your business profile, positioning, and site signals so content stays on-brand.',
+        },
+        {
+          icon: Search,
+          title: 'Topic discovery',
+          desc: 'AI proposes strategic angles; you approve direction before any draft is written.',
+        },
+        {
+          icon: PenLine,
+          title: 'Guided authoring',
+          desc: 'Optional custom brief, or fully assisted flow from idea through streamed HTML output.',
+        },
+        {
+          icon: FileText,
+          title: 'Review & publish',
+          desc: 'Inspect the draft, then save to your library when you are satisfied.',
+        },
+      ]
+
       return (
-        <div className="flex min-h-full flex-1 flex-col items-center justify-center px-4 py-10 text-center">
-          <p className="max-w-lg text-base leading-relaxed text-slate-700">
-            This will be an AI-created, not generated blog for your company and business. The topic research, page structure,
-            content strategy, and informative depth will be done automatically by AI — or you can provide your own topic in
-            the next steps and let the AI handle the rest. Fasten your seat belt and enjoy.
-          </p>
-          <button
-            type="button"
-            onClick={handleContinueStep1}
-            className="mt-6 rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            Get started
-          </button>
+        <div className="flex min-h-full flex-1 flex-col items-center justify-center px-4 py-12 sm:py-16">
+          <div className="w-full max-w-xl space-y-10">
+            <header className="text-center sm:text-left">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-blue-800">
+                <Sparkles className="h-3.5 w-3.5 text-blue-600" aria-hidden />
+                SEM, SEO and Content flow
+              </div>
+              <h1 className="text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Strategic blogs, aligned with your business
+              </h1>
+              <p className="mx-auto mt-4 text-pretty text-sm leading-relaxed text-slate-600 sm:mx-0 sm:text-[15px]">
+                Produce blogs that reflect your positioning and market context. The assistant researches themes, proposes topics you can select or override, then creates a structured blog you can review before it goes live.
+              </p>
+            </header>
+
+            <ul className="list-none grid grid-cols-2 gap-4">
+              {welcomeFeatures.map(({ icon: Icon, title, desc }) => (
+                <li key={title} className="border border-blue-200 rounded-lg p-4">
+                  <div className="flex space-x-4">
+                  <div className="flex shrink-0 items-start text-blue-600">
+                    <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+                  </div>
+                  <div className="min-w-0 pt-0.5 text-left">
+                    <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+                  </div>
+                  </div>
+                    <p className="mt-4 text-sm text-slate-600">{desc}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="pt-2">
+              {prefillLoading ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-2 text-center sm:flex-row sm:justify-start sm:text-left">
+                  <Loader2 className="h-6 w-6 shrink-0 animate-spin text-blue-600" aria-hidden />
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">Checking prerequisites</p>
+                    <p className="mt-0.5 text-xs text-slate-500">Verifying your business profile connection…</p>
+                  </div>
+                </div>
+              ) : hasBusinessProfile ? (
+                  <button
+                    type="button"
+                    onClick={handleContinueStep1}
+                    className={`w-full flex items-center justify-center space-x-2 py-4 ${BTN_PRIMARY}`}
+                  >
+                    <span>GET STARTED</span>
+                    <ArrowRight className="h-4 w-4 inline-block" />
+                  </button>
+              ) : (
+                <div className="space-y-3 text-center sm:text-left">
+                  <h2 className="text-sm font-semibold text-slate-900">Business profile required</h2>
+                  <p className="text-sm leading-relaxed text-slate-600">
+                    This workflow relies on your saved business profile for company details, positioning, and competitive
+                    context. Complete that step first to unlock blog creation.
+                  </p>
+                  <Link
+                    to="/business-profile"
+                    className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-blue-700 transition-colors hover:text-blue-900 sm:justify-start"
+                  >
+                    Create or update your business profile
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )
     }
@@ -651,7 +771,7 @@ export function NewBlog() {
                 </Field>
               </section>
               <section>
-                <h4 className="mb-3 text-sm font-semibold text-slate-900">Company details</h4>
+                <h4 className="mb-3 text-sm font-semibold text-blue-950">Company details</h4>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Industry">
                     <input className={inputClass} value={form.industry} onChange={(e) => setField('industry', e.target.value)} />
@@ -705,7 +825,47 @@ export function NewBlog() {
           )}
 
           <section>
-            <h4 className="mb-3 text-sm font-semibold text-slate-900">Competitors</h4>
+            <h4 className="mb-3 text-sm font-semibold text-blue-950">Blog topics</h4>
+            <p className="mb-3 text-sm text-slate-600">
+              Topics from your saved business profile (existing posts on your blogs page, when available).
+            </p>
+            {profileBlogPosts.length ? (
+              <ul className="m-0 list-none space-y-3 p-0">
+                {profileBlogPosts.map((b, i) => {
+                  const title = b?.title != null ? String(b.title).trim() : ''
+                  const link = b?.link != null ? String(b.link).trim() : ''
+                  const when = formatBlogDate(b?.date ?? b?.datetime)
+                  const summary = b?.summary != null ? String(b.summary).trim() : ''
+                  const key = `${link || title || 'post'}-${i}`
+                  return (
+                    <li key={key} className="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+                      <div className="text-sm font-medium text-slate-900">
+                        {link ? (
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-700 underline decoration-blue-300 underline-offset-2 hover:text-blue-900 break-all"
+                          >
+                            {title || link}
+                          </a>
+                        ) : (
+                          <span>{title || '—'}</span>
+                        )}
+                      </div>
+                      {when ? <div className="mt-1 text-xs text-slate-500">{when}</div> : null}
+                      {summary ? <p className="mt-2 mb-0 text-sm leading-relaxed text-slate-600">{summary}</p> : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate-500">No blog topics in your profile yet. They appear after your business profile includes posts from your blogs page.</p>
+            )}
+          </section>
+
+          <section>
+            <h4 className="mb-3 text-sm font-semibold text-blue-950">Competitors</h4>
             {competitors.length ? (
               <div className="space-y-3">
                 {competitors.map((c) => {
@@ -805,18 +965,31 @@ export function NewBlog() {
               <ul className="space-y-3 list-none m-0 p-0">
                 {topicSuggestions.map((s, i) => {
                   const selected = selectedSuggestionIndex === i
+                  const title = suggestedTopicLabel(s)
+                  const category = String(s.category ?? '').trim()
+                  const reason = String(s.reason ?? s.why ?? s.summary ?? '').trim()
                   return (
-                    <li key={`${s.blog_title}-${i}`}>
+                    <li key={`${title}-${i}`}>
                       <button
                         type="button"
-                        onClick={() => setSelectedSuggestionIndex(i)}
-                        className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
-                          selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:border-slate-300'
+                        onClick={() => {
+                          setSelectedSuggestionIndex(i)
+                          setSelectedTopic(s)
+                        }}
+                        className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
+                          selected
+                            ? 'border-blue-600 bg-blue-600 text-white shadow-md ring-1 ring-blue-500/30'
+                            : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/60'
                         }`}
                       >
-                        <div className={`font-semibold ${selected ? 'text-white' : 'text-slate-900'}`}>{s.blog_title}</div>
-                        <div className={`mt-1 text-sm leading-relaxed ${selected ? 'text-slate-200' : 'text-slate-600'}`}>
-                          {s.reason || '—'}
+                        <div className={`font-semibold ${selected ? 'text-white' : 'text-slate-900'}`}>{title || '—'}</div>
+                        {category ? (
+                          <div className={`mt-1 text-xs font-medium ${selected ? 'text-blue-100' : 'text-slate-500'}`}>
+                            {category}
+                          </div>
+                        ) : null}
+                        <div className={`mt-1 text-sm leading-relaxed ${selected ? 'text-blue-50' : 'text-slate-600'}`}>
+                          {reason || '—'}
                         </div>
                       </button>
                     </li>
@@ -833,23 +1006,19 @@ export function NewBlog() {
     if (step === 5) {
       return (
         <div className="space-y-4 pb-4">
-          <BlogWorkflowPipeline
-            phase={createWorkflowViz.phase}
-            runId={createWorkflowViz.runId}
-            input={createWorkflowViz.input}
-            agents={createWorkflowViz.agents}
-            orchestratorStream={createWorkflowViz.orchestratorStream}
-            onOpenStream={setStreamModal}
-            onExpandBrowser={() => {}}
+          {writeBlogStreaming ? (
+            <p className="text-sm text-slate-600">Generating your blog…</p>
+          ) : blogHtmlContent.trim() ? (
+            <p className="text-sm text-slate-600">Review the draft below, then use Save and Continue to store it.</p>
+          ) : (
+            <p className="text-sm text-amber-800">No content was received. Go back and try again, or check the stream logs.</p>
+          )}
+          <div
+            className="min-h-48  bg-white ring-slate-100/80 sm:p-6 [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-blue-100 [&_blockquote]:pl-4 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mb-3 [&_h2]:mt-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_img]:max-w-full [&_img]:rounded-lg [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_p]:leading-relaxed [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-50 [&_pre]:p-3 [&_pre]:text-sm [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
+            dangerouslySetInnerHTML={
+              blogHtmlContent.trim() ? { __html: blogHtmlContent } : { __html: '' }
+            }
           />
-        </div>
-      )
-    }
-
-    if (step === 6) {
-      return (
-        <div className="space-y-4 pb-4 text-center">
-          <p className="text-sm text-slate-600">Use Show blog to preview, or Save to store workflows and content locally until the API is wired.</p>
         </div>
       )
     }
@@ -862,7 +1031,7 @@ export function NewBlog() {
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
         <div className={`flex min-h-0 flex-1 flex-col ${step > 1 ? 'lg:flex-row' : ''}`}>
           {step > 1 ? (
-            <aside className="shrink-0 border-b border-slate-200 bg-white lg:flex lg:h-full lg:w-64 lg:border-b-0 lg:border-r xl:w-72">
+            <aside className="shrink-0 border-b border-slate-200/80 lg:flex lg:h-full lg:w-64 lg:border-b-0 lg:border-r lg:border-slate-200/80 xl:w-72">
               <div className="w-full h-full overflow-y-auto pt-5 pb-4">
                 <BlogCreateStepsNav currentStep={step} />
               </div>
@@ -871,28 +1040,46 @@ export function NewBlog() {
 
           {step > 1 ? (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2 sm:px-6">
-                <h2 className="text-xl font-bold text-slate-700 tracking-tight">{STEP_HEADER_TITLES[step]}</h2>
-                {step === 2 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (profileEditing) {
-                        setProfileEditing(false)
-                      } else {
-                        setProfileEditing(true)
-                      }
-                    }}
-                    className="text-sm font-semibold text-slate-400 underline underline-offset-4 decoration-dashed decoration-slate-500 hover:text-slate-800 hover:slate-600"
-                  >
-                    {profileEditing ? 'Save' : <span className="flex items-center space-x-2"><Pencil className="w-3.5 h-3.5" /> <span>Edit</span></span>}
-                  </button>
-                ) : null}
+              <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur-sm sm:px-6">
+                <h2 className="text-xl font-bold tracking-tight text-blue-950">{STEP_HEADER_TITLES[step]}</h2>
+                <div className="flex shrink-0 items-center gap-2">
+                  {step === 4 || step === 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => setSseLogsModalOpen(true)}
+                      className={`inline-flex items-center gap-1.5 shadow-none ${BTN_HEADER_OUTLINE}`}
+                      aria-label="Open SSE logs"
+                    >
+                      <Terminal className="h-4 w-4 text-blue-600" aria-hidden />
+                      SSE Logs
+                    </button>
+                  ) : null}
+                  {step === 2 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (profileEditing) {
+                          setProfileEditing(false)
+                        } else {
+                          setProfileEditing(true)
+                        }
+                      }}
+                      className="text-sm font-semibold text-blue-600 underline decoration-blue-300 decoration-dashed underline-offset-4 hover:text-blue-800"
+                    >
+                      {profileEditing ? 'Save' : <span className="flex items-center space-x-2"><Pencil className="w-3.5 h-3.5" /> <span>Edit</span></span>}
+                    </button>
+                  ) : null}
+                  {step === 5 && blogHtmlContent.trim() ? (
+                    <button type="button" onClick={() => setBlogPreviewOpen(true)} className={BTN_HEADER_OUTLINE}>
+                      Preview
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
                 <div className="w-full max-w-4xl">{rightColumn()}</div>
               </main>
-              <footer className="shrink-0 border-t border-slate-200 px-4 py-2 sm:px-6">
+              <footer className="shrink-0 border-t border-slate-200/80 bg-white px-4 py-3 sm:px-6">
                 <div className="mx-auto w-full">{footerButtons()}</div>
               </footer>
             </div>
@@ -922,6 +1109,27 @@ export function NewBlog() {
       </SmartModal>
 
       <SmartModal
+        open={sseLogsModalOpen}
+        onClose={() => setSseLogsModalOpen(false)}
+        animation="top"
+        showHeader={false}
+        size="xl"
+        className="bg-black! border-slate-800 shadow-2xl shadow-black/50"
+        contentClassName="p-0 min-h-[min(75vh,40rem)] max-h-[min(75vh,40rem)] bg-black"
+        showFooter={false}
+      >
+        <pre className="m-0 h-full min-h-[min(75vh,40rem)] max-h-[min(75vh,40rem)] overflow-auto p-4 font-mono text-xs leading-relaxed text-green-400 whitespace-pre-wrap wrap-break-word selection:bg-green-900 selection:text-green-200">
+          {(() => {
+            const parts = []
+            if (topicResearchWorkflow.length) parts.push(topicResearchWorkflow.join('\n'))
+            if (writeBlogStreamLog) parts.push(writeBlogStreamLog)
+            const text = parts.join('\n\n')
+            return text
+          })()}
+        </pre>
+      </SmartModal>
+
+      <SmartModal
         open={blogPreviewOpen}
         onClose={() => setBlogPreviewOpen(false)}
         title="Blog preview"
@@ -937,21 +1145,15 @@ export function NewBlog() {
             >
               Close
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                handleSaveAll()
-              }}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-            >
-              Save
-            </button>
           </div>
         }
       >
-        <div className="max-h-[min(75vh,36rem)] overflow-auto text-sm text-slate-800 whitespace-pre-wrap wrap-break-word">
-          {renderBlogBody()}
-        </div>
+        <div
+          className="max-h-[min(75vh,36rem)] overflow-auto text-sm text-slate-800 [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:border-l-4 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_img]:max-w-full [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-3 [&_ul]:list-disc [&_ul]:pl-6"
+          dangerouslySetInnerHTML={
+            blogHtmlContent.trim() ? { __html: blogHtmlContent } : { __html: '<p class="text-slate-500">—</p>' }
+          }
+        />
       </SmartModal>
     </>
   )
