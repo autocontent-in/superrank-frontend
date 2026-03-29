@@ -602,7 +602,7 @@ export function NewBlog() {
         showSnackbar({ message: 'Saved, but no blog id was returned.', variant: 'warning', duration: 5000 })
         return
       }
-      navigate(`/seo-services/blogs/${encodeURIComponent(String(id))}`)
+      navigate(`/services/blogs/${encodeURIComponent(String(id))}`)
     } catch (e) {
       const msg = e?.response?.data?.message || e?.message || String(e)
       showSnackbar({ message: msg, variant: 'error', duration: 5000 })

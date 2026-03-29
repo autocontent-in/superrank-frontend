@@ -62,7 +62,7 @@ export function BlogView() {
     return (
       <div className="px-4 py-10 text-center">
         <p className="text-sm text-slate-600">{error || 'Blog not found.'}</p>
-        <Link to="/seo-services/blogs" className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
+        <Link to="/services/blogs" className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
           Back to blogs
         </Link>
       </div>
@@ -74,7 +74,7 @@ export function BlogView() {
 
   return (
     <div className="w-full max-w-4xl px-4 py-6">
-      <Link to="/seo-services/blogs" className="text-sm font-medium text-blue-600 hover:text-blue-800">
+      <Link to="/services/blogs" className="text-sm font-medium text-blue-600 hover:text-blue-800">
         ← Blogs
       </Link>
       <h1 className="mt-4 text-2xl font-semibold text-slate-900">{title}</h1>

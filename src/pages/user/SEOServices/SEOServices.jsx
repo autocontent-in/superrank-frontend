@@ -198,14 +198,14 @@ export function SEOServices() {
   const [competitors, setCompetitors] = useState([])
   const [competitorsLoading, setCompetitorsLoading] = useState(false)
   const [competitorsError, setCompetitorsError] = useState(null)
-  const isCreateBlogRoute = location.pathname === '/seo-services/blogs/new'
-  const isSeoServicesHomeRoute = location.pathname === '/seo-services'
-  const isBlogsRoute = location.pathname === '/seo-services/blogs'
-  const isBlogRoute = location.pathname === '/seo-services/blog'
+  const isCreateBlogRoute = location.pathname === '/services/blogs/new'
+  const isSeoServicesHomeRoute = location.pathname === '/services'
+  const isBlogsRoute = location.pathname === '/services/blogs'
+  const isBlogRoute = location.pathname === '/services/blog'
   const isBlogDetailRoute =
-    location.pathname.startsWith('/seo-services/blogs/') &&
-    location.pathname !== '/seo-services/blogs/new' &&
-    location.pathname !== '/seo-services/blogs'
+    location.pathname.startsWith('/services/blogs/') &&
+    location.pathname !== '/services/blogs/new' &&
+    location.pathname !== '/services/blogs'
   const isFullWidthSeoChildRoute =
     isCreateBlogRoute || isSeoServicesHomeRoute || isBlogsRoute || isBlogRoute || isBlogDetailRoute
 

@@ -1,4 +1,4 @@
-import { BrowserRouter, useRoutes, Navigate } from 'react-router-dom'
+import { BrowserRouter, useRoutes, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedCustomerRoute } from './routes/ProtectedCustomerRoute'
 import { DefaultLayoutWithSidebar } from './pages/user/DefaultLayoutWithSidebar'
@@ -34,6 +34,13 @@ import { Error404 } from './pages/Error404'
 import { guestRoutes } from './routes/guests.routes.jsx'
 import { SnackbarProvider } from './components/ui/SnackbarProvider'
 
+function LegacySeoServicesRedirect() {
+  const { pathname, search, hash } = useLocation()
+  const rest = pathname.replace(/^\/seo-services\/?/, '')
+  const to = rest ? `/services/${rest}` : '/services'
+  return <Navigate to={`${to}${search}${hash}`} replace />
+}
+
 const allRoutes = [
   {
     path: '/',
@@ -56,7 +63,7 @@ const allRoutes = [
           { path: 'multi-web-agents', element: <MultiWebAgents /> },
           { path: 'business-profile', element: <BusinessProfile /> },
           {
-            path: 'seo-services',
+            path: 'services',
             element: <SEOServices />,
             children: [
               { index: true, element: <SeoServices /> },
@@ -66,6 +73,8 @@ const allRoutes = [
               { path: 'blog', element: <Blog /> },
             ],
           },
+          { path: 'seo-services', element: <LegacySeoServicesRedirect /> },
+          { path: 'seo-services/*', element: <LegacySeoServicesRedirect /> },
           { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
           { path: 'multi-agent-test', element: <Navigate to="/ai-team" replace /> },
           { path: 'conversational-ai-team', element: <Navigate to="/ai-team" replace /> },

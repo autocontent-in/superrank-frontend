@@ -63,14 +63,14 @@ export function SeoServices() {
         </div>
       ) : !hasBusinessProfile ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-10 text-center text-sm text-slate-600">
-          Create a business profile to unlock SEO services.
+          Create a business profile to unlock services.
         </div>
       ) : (
         <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
           <ServiceCard
             title="Blogs"
             description="Write a well reserached blog with trending topic, rank on search engines for your niche"
-            onClick={() => navigate('/seo-services/blogs')}
+            onClick={() => navigate('/services/blogs')}
           />
           <ServiceCard
             title="Monthly Content Topics"

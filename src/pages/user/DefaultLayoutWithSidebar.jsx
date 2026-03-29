@@ -56,7 +56,7 @@ const sidebarNav = [
       { to: '/', label: 'Home', icon: House, end: true },
       { to: '/website-audit', label: 'Website Audit', icon: BarChart2 },
       { to: '/business-profile', label: 'Business Profile', icon: BookOpen },
-      { to: '/seo-services', label: 'SEO Services', icon: LifeBuoy },
+      { to: '/services', label: 'Services', icon: LifeBuoy },
       { to: '/web-agent', label: 'Web Agents', icon: Bot },
       { to: '/ai-team', label: 'AI Team', icon: BotMessageSquare },
       ...(isDev ? [{ to: '/ai-demo', label: 'AI Demo', icon: Sparkles }] : []),
@@ -1789,15 +1789,15 @@ function SimpleBreadcrumbNavbar({ title }) {
   )
 }
 
-/** SEO Services and nested routes — single top chrome aligned with the rest of the app. */
-function SeoServicesRouteNavbar() {
+/** Services and nested routes — single top chrome aligned with the rest of the app. */
+function ServicesRouteNavbar() {
   const { pathname } = useLocation()
 
   const bar =
     'shrink-0 h-14 px-4 border-b border-slate-200 flex items-center gap-4 bg-white'
   const crumbs = 'flex items-center h-9 min-w-0 gap-1.5 flex-1'
 
-  if (pathname === '/seo-services') {
+  if (pathname === '/services') {
     return (
       <div className={bar}>
         <div className={crumbs}>
@@ -1809,13 +1809,13 @@ function SeoServicesRouteNavbar() {
             <House className="w-4 h-4" />
           </Link>
           <span className="text-slate-400">/</span>
-          <span className="text-sm font-semibold text-slate-800">SEO Services</span>
+          <span className="text-sm font-semibold text-slate-800">Services</span>
         </div>
       </div>
     )
   }
 
-  if (pathname === '/seo-services/blogs') {
+  if (pathname === '/services/blogs') {
     return (
       <div className={`${bar} justify-between`}>
         <div className={crumbs}>
@@ -1828,16 +1828,16 @@ function SeoServicesRouteNavbar() {
           </Link>
           <span className="text-slate-400">/</span>
           <Link
-            to="/seo-services"
+            to="/services"
             className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
           >
-            SEO Services
+            Services
           </Link>
           <span className="text-slate-400">/</span>
           <span className="text-sm font-semibold text-slate-800">Blogs</span>
         </div>
         <Link
-          to="/seo-services/blogs/new"
+          to="/services/blogs/new"
           className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
         >
           + Create
@@ -1847,7 +1847,7 @@ function SeoServicesRouteNavbar() {
   }
 
   {
-    const blogDetailMatch = pathname.match(/^\/seo-services\/blogs\/([^/]+)$/)
+    const blogDetailMatch = pathname.match(/^\/services\/blogs\/([^/]+)$/)
     if (blogDetailMatch && blogDetailMatch[1] !== 'new') {
       return (
         <div className={`${bar} justify-between`}>
@@ -1861,14 +1861,14 @@ function SeoServicesRouteNavbar() {
             </Link>
             <span className="text-slate-400">/</span>
             <Link
-              to="/seo-services"
+              to="/services"
               className="shrink-0 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800"
             >
-              SEO Services
+              Services
             </Link>
             <span className="text-slate-400">/</span>
             <Link
-              to="/seo-services/blogs"
+              to="/services/blogs"
               className="shrink-0 text-sm font-medium text-slate-600 transition-colors hover:text-slate-800"
             >
               Blogs
@@ -1877,7 +1877,7 @@ function SeoServicesRouteNavbar() {
             <span className="truncate text-sm font-semibold text-slate-800">Blog</span>
           </div>
           <Link
-            to="/seo-services/blogs/new"
+            to="/services/blogs/new"
             className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
           >
             + Create
@@ -1887,7 +1887,7 @@ function SeoServicesRouteNavbar() {
     }
   }
 
-  if (pathname === '/seo-services/blog') {
+  if (pathname === '/services/blog') {
     return (
       <div className={bar}>
         <div className={crumbs}>
@@ -1900,14 +1900,14 @@ function SeoServicesRouteNavbar() {
           </Link>
           <span className="text-slate-400">/</span>
           <Link
-            to="/seo-services"
+            to="/services"
             className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
           >
-            SEO Services
+            Services
           </Link>
           <span className="text-slate-400">/</span>
           <Link
-            to="/seo-services/blogs"
+            to="/services/blogs"
             className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
           >
             Blogs
@@ -1919,7 +1919,7 @@ function SeoServicesRouteNavbar() {
     )
   }
 
-  if (pathname === '/seo-services/blogs/new') {
+  if (pathname === '/services/blogs/new') {
     return (
       <div className={bar}>
         <div className={crumbs}>
@@ -1932,14 +1932,14 @@ function SeoServicesRouteNavbar() {
           </Link>
           <span className="text-slate-400">/</span>
           <Link
-            to="/seo-services"
+            to="/services"
             className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
           >
-            SEO Services
+            Services
           </Link>
           <span className="text-slate-400">/</span>
           <Link
-            to="/seo-services/blogs"
+            to="/services/blogs"
             className="text-sm font-medium text-slate-600 hover:text-slate-800 shrink-0"
           >
             Blogs
@@ -2081,7 +2081,7 @@ export function DefaultLayoutWithSidebar() {
         {location.pathname === '/business-profile' && (
           <SimpleBreadcrumbNavbar title="Business Profile" />
         )}
-        {location.pathname.startsWith('/seo-services') && <SeoServicesRouteNavbar />}
+        {location.pathname.startsWith('/services') && <ServicesRouteNavbar />}
         {(location.pathname === '/web-agent' ||
           location.pathname === '/multi-web-agents' ||
           location.pathname === '/ai-team') && <AiAgentsNavbar />}

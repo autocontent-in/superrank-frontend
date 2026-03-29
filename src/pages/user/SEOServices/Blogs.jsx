@@ -52,7 +52,7 @@ export function Blogs() {
               <BookOpen className="h-12 w-12 shrink-0 text-slate-300" strokeWidth={1.5} />
               <p className="text-base text-slate-500">No blogs yet.</p>
               <Link
-                to="/seo-services/blogs/new"
+                to="/services/blogs/new"
                 className="flex items-center space-x-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
               >
                 <Plus className="h-4 w-4 text-gray-500" />
@@ -70,7 +70,7 @@ export function Blogs() {
                 return (
                   <Link
                     key={String(id)}
-                    to={`/seo-services/blogs/${encodeURIComponent(String(id))}`}
+                    to={`/services/blogs/${encodeURIComponent(String(id))}`}
                     className="group flex flex-col gap-2 text-center"
                   >
                     <div className="relative flex aspect-square items-center justify-center rounded-lg border border-slate-200 bg-white transition-colors group-hover:border-blue-300 group-hover:bg-blue-50/50">

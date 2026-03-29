@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Globe, X } from 'lucide-react'
+import { Check, Globe, Terminal, X } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSnackbar } from '../../components/ui/SnackbarProvider'
 import { SmartModal } from '../../components/ui/SmartModal'
@@ -891,7 +891,19 @@ function BrowserStreamMiniPreview({ phase, streamingUrl, statusText }) {
   )
 }
 
-function WorkflowAgentPipeline({ phase, runId, input, agents, orchestratorStream, onOpenStream, onExpandBrowser }) {
+function WorkflowAgentPipeline({
+  phase,
+  runId,
+  input,
+  agents,
+  orchestratorStream,
+  onOpenStream,
+  onExpandBrowser,
+  onCreateProfile,
+  createProfileDisabled,
+  createProfileLoading,
+  savedProfileExists,
+}) {
   const idle = phase === 'idle' && agents.length === 0
 
   const runActive = phase === 'starting' || phase === 'running'
@@ -915,11 +927,30 @@ function WorkflowAgentPipeline({ phase, runId, input, agents, orchestratorStream
         : 'border-slate-200 bg-white'
 
   if (idle) {
+    const primaryCta = savedProfileExists ? 'Re-create business profile' : 'Create my business profile'
     return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-500">
-        When you run a profile, the <strong className="font-medium text-slate-700">orchestrator</strong> appears first, then{' '}
-        <strong className="font-medium text-slate-700">agents</strong> and their <strong className="font-medium text-slate-700">tools</strong>, with a streaming bar
-        until the workflow completes.
+      <div className="rounded-xl border border-slate-200 px-6 py-10 sm:px-10 sm:py-12 shadow-xs">
+        <div className="mx-auto max-w-lg text-center">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+            {savedProfileExists ? 'Run the profile workflow' : 'No business profile yet'}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            {savedProfileExists
+              ? 'Start another automated pass to refresh research, agents, and outputs. Progress streams here as the run executes.'
+              : 'We analyze your company and website with an automated workflow research and live progress will appear here.'}
+          </p>
+          <button
+            type="button"
+            onClick={onCreateProfile}
+            disabled={createProfileDisabled || !onCreateProfile}
+            className="mt-8 inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {createProfileLoading ? 'Creating…' : primaryCta}
+          </button>
+          {createProfileDisabled && !createProfileLoading ? (
+            <p className="mt-3 text-xs text-amber-700/90">Add a company name and website in your account to continue.</p>
+          ) : null}
+        </div>
       </div>
     )
   }
@@ -1446,19 +1477,43 @@ export function BusinessProfile() {
             <CompetitorAvatarStack competitors={competitors} loading={competitorsLoading} errorMessage={competitorsError} />
           </div>
 
-          <div className="mt-4 flex items-start justify-between flex-wrap">
+          <div className="mt-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-semibold text-slate-900">Business Profile</h1>
 
-            {latestBusinessProfile && !showWorkflowUI ? (
-              <button
-                type="button"
-                onClick={recreateFromLatest}
-                disabled={isSubmitting || isSavingBusinessProfile}
-                className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 underline decoration-dashed underline-offset-4 text-sm font-semibold decoration-gray-400 hover:decoration-gray-500 disabled:pointer-events-none disabled:opacity-50"
-              >
-                {isSubmitting ? 'Re-creating…' : 'Re-create business profile'}
-              </button>
-            ) : null}
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              {latestBusinessProfile && !showWorkflowUI ? (
+                <button
+                  type="button"
+                  onClick={recreateFromLatest}
+                  disabled={isSubmitting || isSavingBusinessProfile}
+                  className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 underline decoration-dashed underline-offset-4 text-sm font-semibold decoration-gray-400 hover:decoration-gray-500 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Re-creating…' : 'Re-create business profile'}
+                </button>
+              ) : null}
+              {!(isLoadingLatestBusinessProfile && !showWorkflowUI) && !(latestBusinessProfile && !showWorkflowUI) ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={stop}
+                    disabled={!isSubmitting}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSseRawLogOpen(true)}
+                    disabled={sseRawLines.length === 0 && !isSubmitting}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Open SSE logs"
+                  >
+                    <Terminal className="h-4 w-4 text-blue-600" aria-hidden />
+                    SSE Logs
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -1563,34 +1618,22 @@ export function BusinessProfile() {
             </div>
           ) : (
             <div>
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-2 flex-wrap">
+              {!(workflowViz.phase === 'idle' && workflowViz.agents.length === 0) ? (
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={createBusinessProfile}
                     disabled={isSubmitting || !activeCompanyName || !activeCompanyWebsite}
-                    className="rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Creating…' : 'Create my business profile'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={stop}
-                    disabled={!isSubmitting}
-                    className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Stop
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSseRawLogOpen(true)}
-                    disabled={sseRawLines.length === 0 && !isSubmitting}
-                    className="rounded-lg bg-white border border-slate-300 text-slate-800 px-4 py-2.5 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Raw SSE log
+                    {isSubmitting
+                      ? 'Creating…'
+                      : latestBusinessProfile
+                        ? 'Re-create business profile'
+                        : 'Create my business profile'}
                   </button>
                 </div>
-              </div>
+              ) : null}
 
               <div className="mt-5">
                 <WorkflowAgentPipeline
@@ -1601,6 +1644,10 @@ export function BusinessProfile() {
                   orchestratorStream={workflowViz.orchestratorStream}
                   onOpenStream={setModalStep}
                   onExpandBrowser={setBrowserExpandAgentRunId}
+                  onCreateProfile={createBusinessProfile}
+                  createProfileDisabled={isSubmitting || !activeCompanyName || !activeCompanyWebsite}
+                  createProfileLoading={isSubmitting}
+                  savedProfileExists={Boolean(latestBusinessProfile)}
                 />
               </div>
 
@@ -1676,22 +1723,19 @@ export function BusinessProfile() {
         open={sseRawLogOpen}
         onClose={() => setSseRawLogOpen(false)}
         animation="top"
-        title="Raw SSE log"
-        subtitle={isSubmitting ? 'Streaming…' : undefined}
+        showHeader={false}
         size="xl"
-        contentClassName="p-0"
+        className="bg-black! border-slate-800 shadow-2xl shadow-black/50"
+        contentClassName="p-0 min-h-[min(75vh,40rem)] max-h-[min(75vh,40rem)] bg-black"
         showFooter={false}
-        scrollMode="content"
       >
-        <div className="max-h-[min(70vh,32rem)] overflow-auto bg-slate-950 px-4 py-3">
-          {sseRawLines.length === 0 ? (
-            <p className="text-sm text-slate-500 m-0">Waiting for stream lines…</p>
-          ) : (
-            <pre className="text-xs font-mono text-emerald-400/95 whitespace-pre-wrap break-all m-0">
-              {sseRawLines.join('\n')}
-            </pre>
-          )}
-        </div>
+        <pre className="m-0 h-full min-h-[min(75vh,40rem)] max-h-[min(75vh,40rem)] overflow-auto p-4 font-mono text-xs leading-relaxed text-green-400 whitespace-pre-wrap wrap-break-word selection:bg-green-900 selection:text-green-200">
+          {sseRawLines.length === 0
+            ? isSubmitting
+              ? 'Streaming…'
+              : 'No log lines yet.'
+            : sseRawLines.join('\n')}
+        </pre>
       </SmartModal>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, CheckCircle2, Smartphone, Timer, X, XCircle } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Building2, Check, CheckCircle2, Smartphone, Timer, X, XCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSnackbar } from '../../components/ui/SnackbarProvider'
 import AiApi from '../../api/AiApi'
@@ -315,9 +315,48 @@ export function Home() {
   const visibleCompetitors = (competitors || []).slice(0, MAX_COMPETITORS)
   const competitorOverflow = Math.max(0, (competitors || []).length - MAX_COMPETITORS)
 
+  const hasBusinessProfile = Boolean(latestBusinessProfile)
+
   return (
     <div className="w-full min-h-full overflow-x-hidden overflow-y-auto bg-white px-4 pb-12 pt-0 sm:px-6 sm:pb-16 lg:px-8">
       <div className="mx-auto max-w-6xl pt-6">
+        {!homeDataLoading && !hasBusinessProfile ? (
+          <div className="flex min-h-[min(72vh,580px)] flex-col items-center justify-center px-4 py-12 sm:py-20">
+            <div className="w-full max-w-lg rounded-xl border border-slate-200/90 bg-white px-6 py-10 text-center shadow-[0_1px_2px_rgba(15,23,42,0.05)] sm:px-10 sm:py-12">
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                Dashboard will be ready once you create your business profile
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
+                We use your company details, positioning, and online presence to personalize competitors, SEO context, perform GEO and recommendations.
+              </p>
+              <ul className="mt-8 space-y-3 text-base text-slate-600">
+                {[
+                  'Centralized company and website information',
+                  'Smarter competitor and audit insights tailored to you',
+                ].map((line) => (
+                  <li key={line} className="flex items-start space-x-4 text-center">
+                    <span className="mt-1 h-4 w-4 flex items-center justify-center rounded-full bg-green-600 text-white">
+                      <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                    </span>
+                    <span className="text-center">{line}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-10 text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+                It will only take few minutes.
+              </p>
+              <Link
+                to="/business-profile"
+                className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-500/45 bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:w-auto sm:min-w-[220px]"
+              >
+                Create business profile
+                <ArrowRight className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             {homeDataLoading ? (
@@ -573,6 +612,8 @@ export function Home() {
             </ul>
           </BentoCard>
         </div>
+          </>
+        )}
       </div>
     </div>
   )
