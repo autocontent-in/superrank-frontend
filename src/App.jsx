@@ -75,7 +75,15 @@ const allRoutes = [
           },
           { path: 'seo-services', element: <LegacySeoServicesRedirect /> },
           { path: 'seo-services/*', element: <LegacySeoServicesRedirect /> },
-          { path: 'friendliness-and-responsiveness', element: <FriendlinessAndResponsiveness /> },
+          {
+            path: 'friendliness-and-responsiveness',
+            element:
+              import.meta.env.VITE_APP_ENV === 'dev' ? (
+                <FriendlinessAndResponsiveness />
+              ) : (
+                <Navigate to="/" replace />
+              ),
+          },
           { path: 'multi-agent-test', element: <Navigate to="/ai-team" replace /> },
           { path: 'conversational-ai-team', element: <Navigate to="/ai-team" replace /> },
           { path: 'ai-team', element: <AITeam /> },

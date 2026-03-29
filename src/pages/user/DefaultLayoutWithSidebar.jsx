@@ -60,7 +60,9 @@ const sidebarNav = [
       { to: '/web-agent', label: 'Web Agents', icon: Bot },
       { to: '/ai-team', label: 'AI Team', icon: BotMessageSquare },
       ...(isDev ? [{ to: '/ai-demo', label: 'AI Demo', icon: Sparkles }] : []),
-      { to: '/friendliness-and-responsiveness', label: 'Friendliness and Responsiveness', icon: MonitorSmartphone },
+      ...(isDev
+        ? [{ to: '/friendliness-and-responsiveness', label: 'Friendliness and Responsiveness', icon: MonitorSmartphone }]
+        : []),
       { to: '/all-files', label: 'All Files', icon: LayoutList },
       { to: '/groups', label: 'Groups', icon: FolderOpen },
       { to: '/documents', label: 'Documents', icon: FileText },
