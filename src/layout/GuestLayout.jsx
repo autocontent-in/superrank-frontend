@@ -1,10 +1,21 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
 /**
  * Layout for guest/auth pages (login, signup, forgot password).
- * Centered card with blurred gradient background; auth routes render in <Outlet />.
+ * Login is full-viewport split layout; other routes use centered card + gradient.
  */
 export function GuestLayout() {
+  const { pathname } = useLocation()
+  const isLogin = pathname === '/login'
+
+  if (isLogin) {
+    return (
+      <div className="min-h-dvh flex flex-col relative overflow-x-hidden bg-white">
+        <Outlet />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Blurred gradient background */}
