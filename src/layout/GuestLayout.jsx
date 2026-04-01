@@ -1,14 +1,16 @@
 import { Outlet, useLocation } from 'react-router-dom'
 
+const SPLIT_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/signup/success']
+
 /**
- * Layout for guest/auth pages (login, signup, forgot password).
- * Login is full-viewport split layout; other routes use centered card + gradient.
+ * Layout for guest/auth pages. Split full-viewport auth screens render their own shell;
+ * any other guest routes fall back to centered layout.
  */
 export function GuestLayout() {
   const { pathname } = useLocation()
-  const isLogin = pathname === '/login'
+  const isSplitAuth = SPLIT_AUTH_PATHS.includes(pathname)
 
-  if (isLogin) {
+  if (isSplitAuth) {
     return (
       <div className="min-h-dvh flex flex-col relative overflow-x-hidden bg-white">
         <Outlet />

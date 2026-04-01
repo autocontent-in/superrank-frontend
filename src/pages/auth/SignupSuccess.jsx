@@ -1,5 +1,6 @@
 import { Navigate, Link, useLocation } from 'react-router-dom'
-import { BookOpen, CheckCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
+import { AuthPageShell } from './AuthPageShell'
 
 /**
  * Shown only after successful signup. Congratulates the user and offers a link to log in.
@@ -14,29 +15,24 @@ export function SignupSuccess() {
   }
 
   return (
-    <div className="w-full max-w-[420px]">
-      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 text-center">
-        <div className="flex flex-col items-center">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center mb-4">
-            <BookOpen className="w-5 h-5 text-white" strokeWidth={2} />
-          </div>
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-            <CheckCircle className="w-7 h-7 text-blue-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          You’re all set! 🎉
-          </h1>
-          <p className="text-slate-500 mt-1 mb-6">
-            Account created. You&apos;re in! 💫
-          </p>
-          <Link
-            to="/login"
-            className="inline-block w-full rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150"
-          >
-            Let&apos;s go →
-          </Link>
+    <AuthPageShell>
+      <div className="text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/20">
+          <CheckCircle className="h-8 w-8 text-primary" strokeWidth={2} aria-hidden />
         </div>
+        <h1 className="mt-6 text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.65rem] sm:leading-snug">
+          You&apos;re all set
+        </h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Your account was created. Sign in to continue.
+        </p>
+        <Link
+          to="/login"
+          className="mt-8 inline-flex w-full items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md shadow-primary/25 transition-[background-color,box-shadow] hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/20"
+        >
+          Go to sign in
+        </Link>
       </div>
-    </div>
+    </AuthPageShell>
   )
 }
