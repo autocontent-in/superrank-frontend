@@ -39,7 +39,7 @@ const RING_C = 2 * Math.PI * RING_R
 function LoginInsightPanel() {
   return (
     <div
-      className="relative m-2 flex flex-1 flex-col overflow-hidden rounded-2xl bg-[#161d2a] lg:m-3 lg:rounded-3xl"
+      className="relative m-0.5 flex flex-1 flex-col overflow-hidden rounded-2xl bg-[#161d2a] lg:rounded-xl"
       aria-hidden="true"
     >
       {/* Top fade — percentage height so it scales on all screens */}
@@ -244,12 +244,12 @@ export function Login() {
   }, [formik.submitCount, formik.errors])
 
   const inputBase =
-    'w-full rounded-[10px] border border-slate-200 bg-white px-3.5 py-2.5 text-slate-900 text-sm placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600'
+    'w-full rounded-md border border-slate-200 bg-white px-3.5 py-2.5 text-slate-900 text-sm placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600 hover:border-blue-500/50'
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-white lg:flex-row">
       {/* Left — form */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 lg:max-w-[50%]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-3 lg:max-w-[60%]">
         <header className="flex shrink-0 items-center space-x-2">
           <img
             src={superrankLogo}
@@ -287,7 +287,7 @@ export function Login() {
               <input
                 id="emailOrUsername"
                 type="text"
-                placeholder="Enter your email or username"
+                placeholder="Email or username"
                 autoComplete="username"
                 className={inputBase}
                 {...formik.getFieldProps('emailOrUsername')}
@@ -305,7 +305,7 @@ export function Login() {
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder="Password"
                   autoComplete="current-password"
                   className={`${inputBase} pr-11`}
                   {...formik.getFieldProps('password')}
@@ -313,7 +313,7 @@ export function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 py-2 px-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
@@ -325,15 +325,7 @@ export function Login() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  {...formik.getFieldProps('remember')}
-                />
-                <span className="text-sm text-slate-600">Remember me</span>
-              </label>
+            <div className="flex justify-end">
               <Link
                 to="/forgot-password"
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 underline-offset-2 hover:underline"
@@ -342,31 +334,41 @@ export function Login() {
               </Link>
             </div>
 
-            <button
-              type="submit"
-              disabled={formik.isSubmitting}
-              className="w-full rounded-[10px] bg-blue-600 text-white px-5 py-3 text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {formik.isSubmitting ? 'Signing in…' : 'Sign In'}
-            </button>
+            <div className="flex w-full items-center space-x-12">
+              <label className="flex shrink-0 items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  {...formik.getFieldProps('remember')}
+                />
+                <span className="text-sm text-slate-600">Remember me</span>
+              </label>
+              <button
+                type="submit"
+                disabled={formik.isSubmitting}
+                className="min-w-0 flex-1 rounded-md bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {formik.isSubmitting ? 'Signing in…' : 'Sign In'}
+              </button>
+            </div>
           </form>
 
-          <p className="mt-8 text-center text-sm text-slate-600 py-4">
+          <p className="text-center text-sm text-slate-600 py-4">
             Don&apos;t have an account?{' '}
             <Link
               to="/signup"
               className="font-semibold text-blue-600 hover:text-blue-700 hover:underline underline-offset-2"
             >
-              Register
+              Create one
             </Link>
           </p>
         </div>
 
-        <footer className="mt-auto flex w-full shrink-0 flex-col text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-auto py-2 flex w-full shrink-0 flex-col text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} {appName}. All rights reserved.
           </p>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 text-slate-700">
             <a
               href="#"
               className="hover:text-blue-600 transition-colors"
@@ -388,7 +390,7 @@ export function Login() {
       </div>
 
       {/* Right — insight cards */}
-      <div className="hidden min-h-0 flex-1 flex-col lg:flex lg:max-w-[50%]">
+      <div className="hidden min-h-0 flex-1 flex-col lg:flex lg:max-w-[40%]">
         <LoginInsightPanel />
       </div>
     </div>
